@@ -374,44 +374,44 @@
       }
     });
 
-    // Load players data from the attendance system
-    async function loadPlayersData() {
-      try {
-        // This would be replaced with your actual data fetching logic
-        // For now, we'll simulate fetching data
-        const scriptURL = 'https://script.google.com/macros/s/AKfycbxij6xIH_fypPRhklqQKURq-7xB5RJ3sC5dCBfwj4sJBjqnfXde1ncFrhCpDy04zuZW6g/exec';
-        const response = await fetch(scriptURL);
-        const data = await response.json();
-        
-        // Filter players for this coach's activity and remove duplicates
-        const uniquePlayers = {};
-        data.forEach(player => {
-          if (player.Activity === currentCoach.activity && player["Child Name"]) {
-            uniquePlayers[player.ID] = {
-              id: player.ID,
-              name: player["Child Name"],
-              parent: player.Parent || ""
-            };
-          }
-        });
-        
-        playersData = Object.values(uniquePlayers);
-        renderPlayersList();
-        updatePlayerSelect();
-      } catch (error) {
-        console.error("Error loading players data:", error);
-        // For demo purposes, we'll use sample data if the fetch fails
-        playersData = [
-          { id: "001", name: "محمد أحمد", parent: "أحمد محمد" },
-          { id: "002", name: "علي محمود", parent: "محمود علي" },
-          { id: "003", name: "خالد سعيد", parent: "سعيد خالد" }
-        ];
-        renderPlayersList();
-        updatePlayerSelect();
-      }
-    }
+async function saveEvaluation(playerId) {
+  const player = playersData.find(p => p.id === playerId);
+  const criteria = evaluationCriteria[currentCoach.activity];
+  
+  const scores = {};
+  criteria.forEach((c, i) => {
+    scores[`skill${i+1}`] = parseInt(
+      document.getElementById(`${playerId}-${c.replace(/\s+/g, '-')}`).value
+    );
+  });
 
-    // Render the list of players for evaluation
+  const total = Object.values(scores).reduce((sum, score) => sum + score, 0);
+
+  const evalData = {
+    coach: currentCoach.username,
+    activity: currentCoach.activity,
+    playerId: player.id,
+    playerName: player.name,
+    ...scores, 
+    total: total,
+    notes: document.getElementById(`notes-${playerId}`).value
+  };
+
+  try {
+    await fetch(
+      "https://script.google.com/macros/s/1eNjRvv57AG8wHD-qrpp7dWCSJretu28ImYx5jUznVyQ/exec",
+      {
+        method: "POST",
+        body: JSON.stringify(evalData),
+        headers: { "Content-Type": "application/json" }
+      }
+    );
+    alert("تم حفظ التقييم!");
+  } catch (error) {
+    alert("خطأ في الحفظ: " + error.message);
+  }
+}
+
     function renderPlayersList() {
       playersList.innerHTML = '';
       playersData.forEach(player => {
