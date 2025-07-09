@@ -376,13 +376,17 @@
     const progressChartCanvas = document.getElementById('progressChart');
     const sessionDateInput = document.getElementById('sessionDate');
 
-        sessionDateInput.addEventListener('change', function() {
+    // Initialize with today's date
+    document.getElementById('sessionDate').valueAsDate = new Date();
+
+    // Event listeners
+    sessionDateInput.addEventListener('change', function() {
       if (currentCoach) {
         filterPlayersByDate();
       }
     });
 
-     loginForm.addEventListener('submit', function(e) {
+    loginForm.addEventListener('submit', function(e) {
       e.preventDefault();
       const username = document.getElementById('username').value;
       const password = document.getElementById('password').value;
@@ -400,15 +404,19 @@
       }
     });
 
-  async function loadPlayersData() {
+    // Load players data
+    async function loadPlayersData() {
       try {
-        const proxyUrl = 'https://cors-anywhere.herokuapp.com/';
+        // Use your deployed Google Apps Script URL
+        const scriptUrl = 'https://script.google.com/macros/s/AKfycbxij6xIH_fypPRhklqQKURq-7xB5RJ3sC5dCBfwj4sJBjqnfXde1ncFrhCpDy04zuZW6g/exec';
         
-        const targetUrl = 'https://script.google.com/macros/s/AKfycbxij6xIH_fypPRhklqQKURq-7xB5RJ3sC5dCBfwj4sJBjqnfXde1ncFrhCpDy04zuZW6g/exec';
+        // Add random parameter to avoid caching
+        const url = `${scriptUrl}?random=${Math.random()}`;
         
-        const response = await fetch(proxyUrl + targetUrl, {
+        const response = await fetch(url, {
+          redirect: 'follow',
           headers: {
-            'X-Requested-With': 'XMLHttpRequest'
+            'Content-Type': 'application/json'
           }
         });
         
@@ -416,6 +424,7 @@
         
         const data = await response.json();
         
+        // Store all players data
         allPlayersData = data.filter(player => 
           player.Activity === currentCoach.activity && 
           player["Child Name"]
@@ -448,6 +457,7 @@
       }
     }
     
+    // Filter players by selected date
     function filterPlayersByDate() {
       const selectedDate = sessionDateInput.value;
       
@@ -471,7 +481,52 @@
       renderPlayersList();
     }
 
-  async function saveEvaluation(playerId) {
+    // Render players list
+    function renderPlayersList() {
+      playersList.innerHTML = '';
+      
+      if (playersData.length === 0) {
+        playersList.innerHTML = '<p>لا يوجد لاعبون متاحون للتقييم في هذا التاريخ</p>';
+        return;
+      }
+      
+      playersData.forEach(player => {
+        const playerCard = document.createElement('div');
+        playerCard.className = 'player-card';
+        playerCard.innerHTML = `
+          <h3>${player.name} <small>(${player.id})</small></h3>
+          <p>ولي الأمر: ${player.parent || "غير معروف"}</p>
+          <div class="evaluation-form">
+            <h4>تقييم الأداء:</h4>
+            <div class="evaluation-criteria" id="criteria-${player.id}"></div>
+            <textarea id="notes-${player.id}" placeholder="ملاحظات إضافية..." style="width:100%; margin-top:10px; padding:10px; background:#333; color:white; border:1px solid #f4e733; border-radius:5px;"></textarea>
+            <button class="btn" onclick="saveEvaluation('${player.id}')" style="margin-top:10px;">حفظ التقييم</button>
+          </div>
+        `;
+        
+        const criteriaContainer = playerCard.querySelector(`#criteria-${player.id}`);
+        evaluationCriteria[currentCoach.activity].forEach((criteria, index) => {
+          const criteriaItem = document.createElement('div');
+          criteriaItem.className = 'criteria-item';
+          criteriaItem.innerHTML = `
+            <label>${criteria} (المهارة ${index + 1})</label>
+            <select id="${player.id}-skill${index + 1}">
+              <option value="5">ممتاز (5)</option>
+              <option value="4">جيد جداً (4)</option>
+              <option value="3">جيد (3)</option>
+              <option value="2">مقبول (2)</option>
+              <option value="1">ضعيف (1)</option>
+            </select>
+          `;
+          criteriaContainer.appendChild(criteriaItem);
+        });
+        
+        playersList.appendChild(playerCard);
+      });
+    }
+
+    // Save evaluation
+    async function saveEvaluation(playerId) {
       const sessionDate = sessionDateInput.value;
       if (!sessionDate) {
         alert('الرجاء إدخال تاريخ الجلسة');
@@ -484,7 +539,7 @@
         return;
       }
       
-      // Prepare evaluation data in the sheet format
+      // Prepare evaluation data
       const evaluationData = {
         Timestamp: new Date().toISOString(),
         Coach: currentCoach.username,
@@ -501,19 +556,16 @@
       };
       
       try {
-        const proxyUrl = 'https://cors-anywhere.herokuapp.com/';
-        const targetUrl = 'https://script.google.com/macros/s/AKfycbxij6xIH_fypPRhklqQKURq-7xB5RJ3sC5dCBfwj4sJBjqnfXde1ncFrhCpDy04zuZW6g/exec';
+        const scriptUrl = 'https://script.google.com/macros/s/AKfycbxij6xIH_fypPRhklqQKURq-7xB5RJ3sC5dCBfwj4sJBjqnfXde1ncFrhCpDy04zuZW6g/exec';
         
-        const response = await fetch(proxyUrl + targetUrl, {
+        // Create form data for POST request
+        const formData = new FormData();
+        formData.append('data', JSON.stringify(evaluationData));
+        
+        const response = await fetch(scriptUrl, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-Requested-With': 'XMLHttpRequest'
-          },
-          body: JSON.stringify({
-            action: 'saveEvaluation',
-            data: evaluationData
-          })
+          body: formData,
+          redirect: 'follow'
         });
         
         if (!response.ok) throw new Error('Network response was not ok');
@@ -521,7 +573,7 @@
         const result = await response.json();
         
         if (result.success) {
-
+          // Save locally for the app
           const evaluation = {
             playerId,
             playerName: player.name,
@@ -535,7 +587,7 @@
               skill3: parseInt(evaluationData["Skill 3"])
             },
             totalScore: evaluationData.Total,
-            maxScore: 15, // 3 skills * max 5 points
+            maxScore: 15,
             percentage: Math.round((evaluationData.Total / 15) * 100)
           };
           
@@ -552,6 +604,7 @@
         alert('حدث خطأ أثناء حفظ التقييم. الرجاء المحاولة لاحقًا');
       }
     }
+
     function updateRankings() {
 
       const playerStats = {};
