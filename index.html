@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>بوابة المدربين - تقييم اللاعبين</title>
+  <title>نادي كلباء - تقييم اللاعبين</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
@@ -348,45 +348,46 @@
   </div>
 
   <script>
+ <script>
+    // Configuration
+    const CONFIG = {
+      EVALUATION_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbxkLlvTJzXk0qcjJvKiwJqlNzUVBTGZVkoZRPDQzJvuFVOT8StXy5ta_CuU4rp8Xg7_oQ/exec',
+      ATTENDANCE_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbxij6xIH_fypPRhklqQKURq-7xB5RJ3sC5dCBfwj4sJBjqnfXde1ncFrhCpDy04zuZW6g/exec',
+      USE_CORS_PROXY: false, // Set to true if you still get CORS errors
+      CORS_PROXY_URL: 'https://cors-anywhere.herokuapp.com/'
+    };
 
+    // Coach credentials and activities
     const coaches = {
       "chess1": { password: "pass1", activity: "شطرنج" },
       "coach2": { password: "pass2", activity: "ورش" },
       "basket3": { password: "pass3", activity: "كرة سلة" }
     };
 
+    // Evaluation criteria
     const evaluationCriteria = {
       "شطرنج": ["المهارات الأساسية", "الفهم التكتيكي", "الانضباط"],
       "ورش": ["التقنية", "السرعة", "البداية"],
       "كرة سلة": ["التصويب", "المراوغة", "التمرير"]
     };
 
+    // Global variables
     let currentCoach = null;
     let playersData = [];
-    let allPlayersData = []; 
     let evaluations = JSON.parse(localStorage.getItem('playerEvaluations')) || [];
-    let progressChart = null;
 
-    const loginView = document.getElementById('loginView');
-    const coachPortal = document.getElementById('coachPortal');
-    const loginForm = document.getElementById('loginForm');
-    const playersList = document.getElementById('playersList');
-    const rankingsContainer = document.getElementById('rankingsContainer');
-    const playerSelect = document.getElementById('playerSelect');
-    const progressChartCanvas = document.getElementById('progressChart');
-    const sessionDateInput = document.getElementById('sessionDate');
-
-    // Initialize with today's date
-    document.getElementById('sessionDate').valueAsDate = new Date();
-
-    // Event listeners
-    sessionDateInput.addEventListener('change', function() {
-      if (currentCoach) {
-        filterPlayersByDate();
-      }
+    // Initialize the app
+    document.addEventListener('DOMContentLoaded', function() {
+      document.getElementById('sessionDate').valueAsDate = new Date();
+      setupEventListeners();
     });
 
-    loginForm.addEventListener('submit', function(e) {
+    function setupEventListeners() {
+      document.getElementById('loginForm').addEventListener('submit', handleLogin);
+      document.getElementById('sessionDate').addEventListener('change', handleDateChange);
+    }
+
+    async function handleLogin(e) {
       e.preventDefault();
       const username = document.getElementById('username').value;
       const password = document.getElementById('password').value;
@@ -396,22 +397,23 @@
           username: username,
           activity: coaches[username].activity
         };
-        loginView.classList.add('hidden');
-        coachPortal.classList.remove('hidden');
-        loadPlayersData();
+        document.getElementById('loginView').classList.add('hidden');
+        document.getElementById('coachPortal').classList.remove('hidden');
+        await loadPlayersData();
       } else {
         alert('اسم المستخدم أو كلمة المرور غير صحيحة');
       }
-    });
+    }
 
-    // Load players data
     async function loadPlayersData() {
       try {
-        // Use your deployed Google Apps Script URL
-        const scriptUrl = 'https://script.google.com/macros/s/AKfycbxkLlvTJzXk0qcjJvKiwJqlNzUVBTGZVkoZRPDQzJvuFVOT8StXy5ta_CuU4rp8Xg7_oQ/exec';
+        let url = CONFIG.ATTENDANCE_SCRIPT_URL;
+        if (CONFIG.USE_CORS_PROXY) {
+          url = CONFIG.CORS_PROXY_URL + url;
+        }
         
-        // Add random parameter to avoid caching
-        const url = `${scriptUrl}?random=${Math.random()}`;
+        // Add cache-busting parameter
+        url += `?activity=${encodeURIComponent(currentCoach.activity)}&random=${Math.random()}`;
         
         const response = await fetch(url, {
           redirect: 'follow',
@@ -424,73 +426,64 @@
         
         const data = await response.json();
         
-        // Store all players data
-        allPlayersData = data.filter(player => 
-          player.Activity === currentCoach.activity && 
-          player["Child Name"]
-        );
+        // Process attendance data
+        playersData = data
+          .filter(player => player.Activity === currentCoach.activity && player["Child Name"])
+          .map(player => ({
+            id: player.ID || `${player["Child Name"]}-${Math.random().toString(36).substr(2, 9)}`,
+            name: player["Child Name"],
+            parent: player.Parent || "",
+            date: player.Timestamp ? new Date(player.Timestamp).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]
+          }));
         
-        filterPlayersByDate();
+        renderPlayersList();
         updatePlayerSelect();
       } catch (error) {
         console.error("Error loading players data:", error);
         alert("حدث خطأ أثناء تحميل بيانات اللاعبين. الرجاء المحاولة لاحقًا");
-        // Fallback to sample data
-        allPlayersData = [
+        
+        // Fallback data
+        playersData = [
           { 
-            ID: "KalbaSC-1751407184003", 
-            "Child Name": "محمد أحمد", 
-            Parent: "أحمد محمد",
-            Activity: currentCoach.activity,
-            Date: new Date().toISOString().split('T')[0]
+            id: "KalbaSC-1751407184003", 
+            name: "محمد أحمد", 
+            parent: "أحمد محمد",
+            date: new Date().toISOString().split('T')[0]
           },
           { 
-            ID: "KalbaSC-1751982403874", 
-            "Child Name": "علي محمود", 
-            Parent: "محمود علي",
-            Activity: currentCoach.activity,
-            Date: new Date().toISOString().split('T')[0]
+            id: "KalbaSC-1751982403874", 
+            name: "علي محمود", 
+            parent: "محمود علي",
+            date: new Date().toISOString().split('T')[0]
           }
         ];
-        filterPlayersByDate();
+        renderPlayersList();
         updatePlayerSelect();
       }
     }
-    
-    // Filter players by selected date
-    function filterPlayersByDate() {
-      const selectedDate = sessionDateInput.value;
+
+    function handleDateChange() {
+      const selectedDate = document.getElementById('sessionDate').value;
+      const filteredPlayers = playersData.filter(player => player.date === selectedDate);
       
-      playersData = allPlayersData
-        .filter(player => player.Date === selectedDate)
-        .map(player => ({
-          id: player.ID || `${player["Child Name"]}-${Math.random().toString(36).substr(2, 9)}`,
-          name: player["Child Name"],
-          parent: player.Parent || ""
-        }));
-      
-      if (playersData.length === 0 && allPlayersData.length > 0) {
-        alert('لا يوجد لاعبون مسجلون في هذا التاريخ. سيتم عرض جميع اللاعبين.');
-        playersData = allPlayersData.map(player => ({
-          id: player.ID || `${player["Child Name"]}-${Math.random().toString(36).substr(2, 9)}`,
-          name: player["Child Name"],
-          parent: player.Parent || ""
-        }));
+      if (filteredPlayers.length === 0) {
+        alert('لا يوجد لاعبون مسجلون في هذا التاريخ');
+        renderPlayersList(playersData);
+      } else {
+        renderPlayersList(filteredPlayers);
       }
-      
-      renderPlayersList();
     }
 
-    // Render players list
-    function renderPlayersList() {
-      playersList.innerHTML = '';
+    function renderPlayersList(players = playersData) {
+      const container = document.getElementById('playersList');
+      container.innerHTML = '';
       
-      if (playersData.length === 0) {
-        playersList.innerHTML = '<p>لا يوجد لاعبون متاحون للتقييم في هذا التاريخ</p>';
+      if (players.length === 0) {
+        container.innerHTML = '<p>لا يوجد لاعبون متاحون للتقييم</p>';
         return;
       }
       
-      playersData.forEach(player => {
+      players.forEach(player => {
         const playerCard = document.createElement('div');
         playerCard.className = 'player-card';
         playerCard.innerHTML = `
@@ -499,35 +492,33 @@
           <div class="evaluation-form">
             <h4>تقييم الأداء:</h4>
             <div class="evaluation-criteria" id="criteria-${player.id}"></div>
-            <textarea id="notes-${player.id}" placeholder="ملاحظات إضافية..." style="width:100%; margin-top:10px; padding:10px; background:#333; color:white; border:1px solid #f4e733; border-radius:5px;"></textarea>
-            <button class="btn" onclick="saveEvaluation('${player.id}')" style="margin-top:10px;">حفظ التقييم</button>
+            <textarea id="notes-${player.id}" placeholder="ملاحظات إضافية..."></textarea>
+            <button class="btn" onclick="saveEvaluation('${player.id}')">حفظ التقييم</button>
           </div>
         `;
         
         const criteriaContainer = playerCard.querySelector(`#criteria-${player.id}`);
         evaluationCriteria[currentCoach.activity].forEach((criteria, index) => {
-          const criteriaItem = document.createElement('div');
-          criteriaItem.className = 'criteria-item';
-          criteriaItem.innerHTML = `
-            <label>${criteria} (المهارة ${index + 1})</label>
-            <select id="${player.id}-skill${index + 1}">
-              <option value="5">ممتاز (5)</option>
-              <option value="4">جيد جداً (4)</option>
-              <option value="3">جيد (3)</option>
-              <option value="2">مقبول (2)</option>
-              <option value="1">ضعيف (1)</option>
-            </select>
+          criteriaContainer.innerHTML += `
+            <div class="criteria-item">
+              <label>${criteria}</label>
+              <select id="${player.id}-skill${index + 1}">
+                <option value="5">ممتاز (5)</option>
+                <option value="4">جيد جداً (4)</option>
+                <option value="3">جيد (3)</option>
+                <option value="2">مقبول (2)</option>
+                <option value="1">ضعيف (1)</option>
+              </select>
+            </div>
           `;
-          criteriaContainer.appendChild(criteriaItem);
         });
         
-        playersList.appendChild(playerCard);
+        container.appendChild(playerCard);
       });
     }
 
-    // Save evaluation
     async function saveEvaluation(playerId) {
-      const sessionDate = sessionDateInput.value;
+      const sessionDate = document.getElementById('sessionDate').value;
       if (!sessionDate) {
         alert('الرجاء إدخال تاريخ الجلسة');
         return;
@@ -539,7 +530,6 @@
         return;
       }
       
-      // Prepare evaluation data
       const evaluationData = {
         Timestamp: new Date().toISOString(),
         Coach: currentCoach.username,
@@ -556,13 +546,15 @@
       };
       
       try {
-        const scriptUrl = 'https://script.google.com/macros/s/AKfycbxij6xIH_fypPRhklqQKURq-7xB5RJ3sC5dCBfwj4sJBjqnfXde1ncFrhCpDy04zuZW6g/exec';
+        let url = CONFIG.EVALUATION_SCRIPT_URL;
+        if (CONFIG.USE_CORS_PROXY) {
+          url = CONFIG.CORS_PROXY_URL + url;
+        }
         
-        // Create form data for POST request
         const formData = new FormData();
         formData.append('data', JSON.stringify(evaluationData));
         
-        const response = await fetch(scriptUrl, {
+        const response = await fetch(url, {
           method: 'POST',
           body: formData,
           redirect: 'follow'
@@ -604,7 +596,7 @@
         alert('حدث خطأ أثناء حفظ التقييم. الرجاء المحاولة لاحقًا');
       }
     }
-
+    
     function updateRankings() {
 
       const playerStats = {};
