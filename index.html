@@ -363,6 +363,7 @@
 
     let currentCoach = null;
     let playersData = [];
+    let allPlayersData = []; 
     let evaluations = JSON.parse(localStorage.getItem('playerEvaluations')) || [];
     let progressChart = null;
 
@@ -373,8 +374,15 @@
     const rankingsContainer = document.getElementById('rankingsContainer');
     const playerSelect = document.getElementById('playerSelect');
     const progressChartCanvas = document.getElementById('progressChart');
+    const sessionDateInput = document.getElementById('sessionDate');
 
-    loginForm.addEventListener('submit', function(e) {
+        sessionDateInput.addEventListener('change', function() {
+      if (currentCoach) {
+        filterPlayersByDate();
+      }
+    });
+
+     loginForm.addEventListener('submit', function(e) {
       e.preventDefault();
       const username = document.getElementById('username').value;
       const password = document.getElementById('password').value;
@@ -394,76 +402,77 @@
 
   async function loadPlayersData() {
       try {
-        const response = await fetch('https://script.google.com/macros/s/AKfycbxij6xIH_fypPRhklqQKURq-7xB5RJ3sC5dCBfwj4sJBjqnfXde1ncFrhCpDy04zuZW6g/exec');
-        const data = await response.json();
+        const proxyUrl = 'https://cors-anywhere.herokuapp.com/';
         
-        const uniquePlayers = {};
-        data.forEach(player => {
-          if (player.Activity === currentCoach.activity && player["Child Name"]) {
-            const playerId = player.ID || `${player["Child Name"]}-${Math.random().toString(36).substr(2, 9)}`;
-            uniquePlayers[playerId] = {
-              id: playerId,
-              name: player["Child Name"],
-              parent: player.Parent || ""
-            };
+        const targetUrl = 'https://script.google.com/macros/s/AKfycbxij6xIH_fypPRhklqQKURq-7xB5RJ3sC5dCBfwj4sJBjqnfXde1ncFrhCpDy04zuZW6g/exec';
+        
+        const response = await fetch(proxyUrl + targetUrl, {
+          headers: {
+            'X-Requested-With': 'XMLHttpRequest'
           }
         });
         
-        playersData = Object.values(uniquePlayers);
-        renderPlayersList();
+        if (!response.ok) throw new Error('Network response was not ok');
+        
+        const data = await response.json();
+        
+        allPlayersData = data.filter(player => 
+          player.Activity === currentCoach.activity && 
+          player["Child Name"]
+        );
+        
+        filterPlayersByDate();
         updatePlayerSelect();
       } catch (error) {
         console.error("Error loading players data:", error);
         alert("حدث خطأ أثناء تحميل بيانات اللاعبين. الرجاء المحاولة لاحقًا");
-        // Fallback sample data
-        playersData = [
-          { id: "KalbaSC-1751407184003", name: "محمد أحمد", parent: "أحمد محمد" },
-          { id: "KalbaSC-1751982403874", name: "علي محمود", parent: "محمود علي" }
+        // Fallback to sample data
+        allPlayersData = [
+          { 
+            ID: "KalbaSC-1751407184003", 
+            "Child Name": "محمد أحمد", 
+            Parent: "أحمد محمد",
+            Activity: currentCoach.activity,
+            Date: new Date().toISOString().split('T')[0]
+          },
+          { 
+            ID: "KalbaSC-1751982403874", 
+            "Child Name": "علي محمود", 
+            Parent: "محمود علي",
+            Activity: currentCoach.activity,
+            Date: new Date().toISOString().split('T')[0]
+          }
         ];
-        renderPlayersList();
+        filterPlayersByDate();
         updatePlayerSelect();
       }
     }
-
- function renderPlayersList() {
-      playersList.innerHTML = '';
-      playersData.forEach(player => {
-        const playerCard = document.createElement('div');
-        playerCard.className = 'player-card';
-        playerCard.innerHTML = `
-          <h3>${player.name} <small>(${player.id})</small></h3>
-          <p>ولي الأمر: ${player.parent || "غير معروف"}</p>
-          <div class="evaluation-form">
-            <h4>تقييم الأداء:</h4>
-            <div class="evaluation-criteria" id="criteria-${player.id}"></div>
-            <textarea id="notes-${player.id}" placeholder="ملاحظات إضافية..." style="width:100%; margin-top:10px; padding:10px; background:#333; color:white; border:1px solid #f4e733; border-radius:5px;"></textarea>
-            <button class="btn" onclick="saveEvaluation('${player.id}')" style="margin-top:10px;">حفظ التقييم</button>
-          </div>
-        `;
-        
-        const criteriaContainer = playerCard.querySelector(`#criteria-${player.id}`);
-        evaluationCriteria[currentCoach.activity].forEach((criteria, index) => {
-          const criteriaItem = document.createElement('div');
-          criteriaItem.className = 'criteria-item';
-          criteriaItem.innerHTML = `
-            <label>${criteria} (المهارة ${index + 1})</label>
-            <select id="${player.id}-skill${index + 1}">
-              <option value="5">ممتاز (5)</option>
-              <option value="4">جيد جداً (4)</option>
-              <option value="3">جيد (3)</option>
-              <option value="2">مقبول (2)</option>
-              <option value="1">ضعيف (1)</option>
-            </select>
-          `;
-          criteriaContainer.appendChild(criteriaItem);
-        });
-        
-        playersList.appendChild(playerCard);
-      });
+    
+    function filterPlayersByDate() {
+      const selectedDate = sessionDateInput.value;
+      
+      playersData = allPlayersData
+        .filter(player => player.Date === selectedDate)
+        .map(player => ({
+          id: player.ID || `${player["Child Name"]}-${Math.random().toString(36).substr(2, 9)}`,
+          name: player["Child Name"],
+          parent: player.Parent || ""
+        }));
+      
+      if (playersData.length === 0 && allPlayersData.length > 0) {
+        alert('لا يوجد لاعبون مسجلون في هذا التاريخ. سيتم عرض جميع اللاعبين.');
+        playersData = allPlayersData.map(player => ({
+          id: player.ID || `${player["Child Name"]}-${Math.random().toString(36).substr(2, 9)}`,
+          name: player["Child Name"],
+          parent: player.Parent || ""
+        }));
+      }
+      
+      renderPlayersList();
     }
 
-   async function saveEvaluation(playerId) {
-      const sessionDate = document.getElementById('sessionDate').value;
+  async function saveEvaluation(playerId) {
+      const sessionDate = sessionDateInput.value;
       if (!sessionDate) {
         alert('الرجاء إدخال تاريخ الجلسة');
         return;
@@ -492,11 +501,14 @@
       };
       
       try {
-        // Save to Google Sheet
-        const response = await fetch('https://script.google.com/macros/s/AKfycbxij6xIH_fypPRhklqQKURq-7xB5RJ3sC5dCBfwj4sJBjqnfXde1ncFrhCpDy04zuZW6g/exec', {
+        const proxyUrl = 'https://cors-anywhere.herokuapp.com/';
+        const targetUrl = 'https://script.google.com/macros/s/AKfycbxij6xIH_fypPRhklqQKURq-7xB5RJ3sC5dCBfwj4sJBjqnfXde1ncFrhCpDy04zuZW6g/exec';
+        
+        const response = await fetch(proxyUrl + targetUrl, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
           },
           body: JSON.stringify({
             action: 'saveEvaluation',
@@ -504,10 +516,12 @@
           })
         });
         
+        if (!response.ok) throw new Error('Network response was not ok');
+        
         const result = await response.json();
         
         if (result.success) {
-          // Also save locally for the app
+
           const evaluation = {
             playerId,
             playerName: player.name,
@@ -538,7 +552,6 @@
         alert('حدث خطأ أثناء حفظ التقييم. الرجاء المحاولة لاحقًا');
       }
     }
-
     function updateRankings() {
 
       const playerStats = {};
