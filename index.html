@@ -67,6 +67,7 @@
       background: rgba(0, 0, 0, 0.9);
       border-radius: 10px;
       margin-top: 30px;
+      margin-bottom: 30px;
     }
     .login-container {
       max-width: 500px;
@@ -222,14 +223,26 @@
       font-weight: bold;
       margin-left: 10px;
     }
-    footer {
+    .footer-container {
+      width: 100%;
       background-color: #111;
       color: white;
       text-align: center;
       padding: 20px;
       border-top: 3px solid #f4e733;
-      font-size: 14px;
-      margin-top: 30px;
+    }
+    .footer-content {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .social-icons a {
+      color: white;
+      margin: 0 10px;
+      font-size: 20px;
+      transition: color 0.3s;
+    }
+    .social-icons a:hover {
+      color: #f4e733;
     }
     @media (max-width: 768px) {
       .header-right {
@@ -320,10 +333,19 @@
     </div>
   </div>
 
-  <footer>
-    <p>© 2025 نادي كلباء الرياضي الثقافي - جميع الحقوق محفوظة</p>
-    <p style="font-size: 14px; color: #aaa; margin-top: -10px;">تم التطوير بواسطة روند أحمد الضمور</p>
-  </footer>
+  <div class="footer-container">
+    <div class="footer-content">
+      <p>© 2025 نادي كلباء الرياضي الثقافي - جميع الحقوق محفوظة</p>
+      <p style="font-size: 14px; color: #aaa; margin-top: -10px;">تم التطوير بواسطة روند أحمد الضمور</p>
+      <div class="social-icons">
+        <a href="https://facebook.com/Kalbasc1" target="_blank"><i class="fab fa-facebook-f"></i></a>
+        <a href="https://instagram.com/kalbasc" target="_blank"><i class="fab fa-instagram"></i></a>
+        <a href="https://x.com/Kalba_sc" target="_blank"><i class="fab fa-twitter"></i></a>
+        <a href="https://youtube.com/@kalbasc" target="_blank"><i class="fab fa-youtube"></i></a>
+        <a href="https://tiktok.com/@kalbasc" target="_blank"><i class="fab fa-tiktok"></i></a>
+      </div>
+    </div>
+  </div>
 
   <script>
     // Coach credentials and activities
@@ -374,44 +396,42 @@
       }
     });
 
-async function saveEvaluation(playerId) {
-  const player = playersData.find(p => p.id === playerId);
-  const criteria = evaluationCriteria[currentCoach.activity];
-  
-  const scores = {};
-  criteria.forEach((c, i) => {
-    scores[`skill${i+1}`] = parseInt(
-      document.getElementById(`${playerId}-${c.replace(/\s+/g, '-')}`).value
-    );
-  });
-
-  const total = Object.values(scores).reduce((sum, score) => sum + score, 0);
-
-  const evalData = {
-    coach: currentCoach.username,
-    activity: currentCoach.activity,
-    playerId: player.id,
-    playerName: player.name,
-    ...scores, 
-    total: total,
-    notes: document.getElementById(`notes-${playerId}`).value
-  };
-
-  try {
-    await fetch(
-      "https://script.google.com/macros/s/1eNjRvv57AG8wHD-qrpp7dWCSJretu28ImYx5jUznVyQ/exec",
-      {
-        method: "POST",
-        body: JSON.stringify(evalData),
-        headers: { "Content-Type": "application/json" }
+    // Load players data from attendance system
+    async function loadPlayersData() {
+      try {
+        const response = await fetch('https://script.google.com/macros/s/AKfycbxij6xIH_fypPRhklqQKURq-7xB5RJ3sC5dCBfwj4sJBjqnfXde1ncFrhCpDy04zuZW6g/exec');
+        const data = await response.json();
+        
+        // Filter players for this coach's activity and remove duplicates
+        const uniquePlayers = {};
+        data.forEach(player => {
+          if (player.Activity === currentCoach.activity && player["Child Name"]) {
+            const playerId = player.ID || `${player["Child Name"]}-${Math.random().toString(36).substr(2, 9)}`;
+            uniquePlayers[playerId] = {
+              id: playerId,
+              name: player["Child Name"],
+              parent: player.Parent || ""
+            };
+          }
+        });
+        
+        playersData = Object.values(uniquePlayers);
+        renderPlayersList();
+        updatePlayerSelect();
+      } catch (error) {
+        console.error("Error loading players data:", error);
+        alert("حدث خطأ أثناء تحميل بيانات اللاعبين. الرجاء المحاولة لاحقًا");
+        // Fallback to sample data
+        playersData = [
+          { id: "KalbaSC-1751407184003", name: "محمد أحمد", parent: "أحمد محمد" },
+          { id: "KalbaSC-1751982403874", name: "علي محمود", parent: "محمود علي" }
+        ];
+        renderPlayersList();
+        updatePlayerSelect();
       }
-    );
-    alert("تم حفظ التقييم!");
-  } catch (error) {
-    alert("خطأ في الحفظ: " + error.message);
-  }
-}
+    }
 
+    // Render the list of players for evaluation
     function renderPlayersList() {
       playersList.innerHTML = '';
       playersData.forEach(player => {
@@ -478,7 +498,7 @@ async function saveEvaluation(playerId) {
       evaluation.maxScore = criteria.length * 5;
       evaluation.percentage = Math.round((evaluation.totalScore / evaluation.maxScore) * 100);
       
-      // Save to local storage (in a real app, this would go to a database)
+      // Save to local storage
       evaluations.push(evaluation);
       localStorage.setItem('playerEvaluations', JSON.stringify(evaluations));
       
@@ -536,7 +556,6 @@ async function saveEvaluation(playerId) {
       });
     }
 
-    // Update player select dropdown for progress tracking
     function updatePlayerSelect() {
       playerSelect.innerHTML = '';
       playersData.forEach(player => {
@@ -551,7 +570,6 @@ async function saveEvaluation(playerId) {
       }
     }
 
-    // Show progress for selected player
     function showPlayerProgress() {
       const playerId = playerSelect.value;
       const playerName = playersData.find(p => p.id === playerId).name;
@@ -563,18 +581,13 @@ async function saveEvaluation(playerId) {
         return;
       }
       
-      // Sort evaluations by date
       playerEvals.sort((a, b) => new Date(a.date) - new Date(b.date));
       
-      // Prepare chart data
       const dates = playerEvals.map(e => e.date);
       const percentages = playerEvals.map(e => e.percentage);
-      const criteria = evaluationCriteria[currentCoach.activity];
       
-      // Destroy previous chart if exists
       if (progressChart) progressChart.destroy();
       
-      // Create new chart
       const ctx = progressChartCanvas.getContext('2d');
       progressChart = new Chart(ctx, {
         type: 'line',
@@ -619,9 +632,7 @@ async function saveEvaluation(playerId) {
       });
     }
 
-    // Export rankings to Excel
     function exportRankings() {
-      // Group evaluations by player and calculate averages
       const playerStats = {};
       
       evaluations.filter(e => e.activity === currentCoach.activity).forEach(eval => {
@@ -638,7 +649,6 @@ async function saveEvaluation(playerId) {
         playerStats[eval.playerId].evaluations.push(eval);
       });
       
-      // Calculate average percentages
       const rankings = Object.values(playerStats).map(player => {
         return {
           name: player.name,
@@ -647,10 +657,8 @@ async function saveEvaluation(playerId) {
         };
       });
       
-      // Sort by average (descending)
       rankings.sort((a, b) => b.average - a.average);
       
-      // Create worksheet
       const wsData = [
         ['الترتيب', 'اسم اللاعب', 'المعدل', 'عدد التقييمات'],
         ...rankings.map((player, index) => [index + 1, player.name, player.average + '%', player.evaluations])
@@ -662,7 +670,6 @@ async function saveEvaluation(playerId) {
       XLSX.writeFile(wb, `تصنيفات_${currentCoach.activity}.xlsx`);
     }
 
-    // Show tab
     function showTab(tabName) {
       document.getElementById('evaluationTab').classList.add('hidden');
       document.getElementById('rankingsTab').classList.add('hidden');
@@ -678,7 +685,6 @@ async function saveEvaluation(playerId) {
       }
     }
 
-    // Logout
     function logout() {
       currentCoach = null;
       coachPortal.classList.add('hidden');
@@ -686,15 +692,14 @@ async function saveEvaluation(playerId) {
       loginForm.reset();
     }
 
-    // Initialize with sample data if no evaluations exist
     if (evaluations.length === 0) {
       const sampleEvaluations = [
         {
-          playerId: "001",
+          playerId: "KalbaSC-1751407184003",
           playerName: "محمد أحمد",
           coach: "coach1",
           activity: "كرة قدم",
-          date: "2025-06-01",
+          date: new Date().toISOString().split('T')[0],
           notes: "أداء جيد ولكن يحتاج تحسن في التمرير",
           scores: {
             "المهارات الأساسية": 4,
@@ -706,42 +711,6 @@ async function saveEvaluation(playerId) {
           totalScore: 19,
           maxScore: 25,
           percentage: 76
-        },
-        {
-          playerId: "002",
-          playerName: "علي محمود",
-          coach: "coach1",
-          activity: "كرة قدم",
-          date: "2025-06-01",
-          notes: "ممتاز في جميع الجوانب",
-          scores: {
-            "المهارات الأساسية": 5,
-            "اللياقة البدنية": 5,
-            "الفهم التكتيكي": 4,
-            "روح الفريق": 5,
-            "الانضباط": 5
-          },
-          totalScore: 24,
-          maxScore: 25,
-          percentage: 96
-        },
-        {
-          playerId: "001",
-          playerName: "محمد أحمد",
-          coach: "coach1",
-          activity: "كرة قدم",
-          date: "2025-06-08",
-          notes: "تحسن ملحوظ في التمرير",
-          scores: {
-            "المهارات الأساسية": 5,
-            "اللياقة البدنية": 4,
-            "الفهم التكتيكي": 4,
-            "روح الفريق": 5,
-            "الانضباط": 5
-          },
-          totalScore: 23,
-          maxScore: 25,
-          percentage: 92
         }
       ];
       
@@ -749,7 +718,6 @@ async function saveEvaluation(playerId) {
       localStorage.setItem('playerEvaluations', JSON.stringify(evaluations));
     }
 
-    // Set today's date as default
     document.getElementById('sessionDate').valueAsDate = new Date();
   </script>
 </body>
