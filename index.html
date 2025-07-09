@@ -350,25 +350,23 @@
   <script>
     // Coach credentials and activities
     const coaches = {
-      "coach1": { password: "pass1", activity: "كرة قدم" },
-      "coach2": { password: "pass2", activity: "سباحة" },
-      "coach3": { password: "pass3", activity: "كرة سلة" }
+      "chess1": { password: "pass1", activity: "شطرنج" },
+      "coach2": { password: "pass2", activity: "ورش" },
+      "basket3": { password: "pass3", activity: "كرة سلة" }
     };
 
     // Evaluation criteria by activity
     const evaluationCriteria = {
-      "كرة قدم": ["المهارات الأساسية", "اللياقة البدنية", "الفهم التكتيكي", "روح الفريق", "الانضباط"],
-      "سباحة": ["التقنية", "السرعة", "التحمل", "البداية", "الدوران"],
+      "شطرنج": ["المهارات الأساسية", "اللياقة البدنية", "الفهم التكتيكي", "روح الفريق", "الانضباط"],
+      "ورش": ["التقنية", "السرعة", "التحمل", "البداية", "الدوران"],
       "كرة سلة": ["التصويب", "المراوغة", "التمرير", "الدفاع", "الارتداد"]
     };
 
-    // Global variables
     let currentCoach = null;
     let playersData = [];
     let evaluations = JSON.parse(localStorage.getItem('playerEvaluations')) || [];
     let progressChart = null;
 
-    // DOM elements
     const loginView = document.getElementById('loginView');
     const coachPortal = document.getElementById('coachPortal');
     const loginForm = document.getElementById('loginForm');
@@ -377,7 +375,6 @@
     const playerSelect = document.getElementById('playerSelect');
     const progressChartCanvas = document.getElementById('progressChart');
 
-    // Login form submission
     loginForm.addEventListener('submit', function(e) {
       e.preventDefault();
       const username = document.getElementById('username').value;
@@ -396,7 +393,6 @@
       }
     });
 
-    // Load players data from attendance system
     async function loadPlayersData() {
       try {
         const response = await fetch('https://script.google.com/macros/s/AKfycbxij6xIH_fypPRhklqQKURq-7xB5RJ3sC5dCBfwj4sJBjqnfXde1ncFrhCpDy04zuZW6g/exec');
@@ -421,7 +417,7 @@
       } catch (error) {
         console.error("Error loading players data:", error);
         alert("حدث خطأ أثناء تحميل بيانات اللاعبين. الرجاء المحاولة لاحقًا");
-        // Fallback to sample data
+
         playersData = [
           { id: "KalbaSC-1751407184003", name: "محمد أحمد", parent: "أحمد محمد" },
           { id: "KalbaSC-1751982403874", name: "علي محمود", parent: "محمود علي" }
@@ -431,7 +427,6 @@
       }
     }
 
-    // Render the list of players for evaluation
     function renderPlayersList() {
       playersList.innerHTML = '';
       playersData.forEach(player => {
@@ -469,7 +464,6 @@
       });
     }
 
-    // Save evaluation for a player
     function saveEvaluation(playerId) {
       const sessionDate = document.getElementById('sessionDate').value;
       if (!sessionDate) {
@@ -493,12 +487,10 @@
         evaluation.scores[c] = parseInt(score);
       });
       
-      // Calculate total score
       evaluation.totalScore = Object.values(evaluation.scores).reduce((sum, score) => sum + score, 0);
       evaluation.maxScore = criteria.length * 5;
       evaluation.percentage = Math.round((evaluation.totalScore / evaluation.maxScore) * 100);
       
-      // Save to local storage
       evaluations.push(evaluation);
       localStorage.setItem('playerEvaluations', JSON.stringify(evaluations));
       
@@ -506,9 +498,8 @@
       updateRankings();
     }
 
-    // Update player rankings
     function updateRankings() {
-      // Group evaluations by player and calculate averages
+
       const playerStats = {};
       
       evaluations.filter(e => e.activity === currentCoach.activity).forEach(eval => {
@@ -525,7 +516,6 @@
         playerStats[eval.playerId].evaluations.push(eval);
       });
       
-      // Calculate average percentages
       const rankings = Object.values(playerStats).map(player => {
         return {
           id: player.id,
@@ -535,10 +525,8 @@
         };
       });
       
-      // Sort by average (descending)
       rankings.sort((a, b) => b.average - a.average);
       
-      // Display rankings
       rankingsContainer.innerHTML = '';
       rankings.forEach((player, index) => {
         const rankItem = document.createElement('div');
