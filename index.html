@@ -3,29 +3,84 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>نادي كلباء - بوابة الحضور والتقييم</title>
+  <title>نادي كلباء الرياضي الثقافي - التقييمات</title>
   <style>
     @font-face {
       font-family: 'NotoKufiArabic';
       src: url('NotoKufiArabic.ttf') format('truetype');
+    }
+    html {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
     }
     body {
       font-family: 'NotoKufiArabic', sans-serif;
       background: url('black_and_yellow_grunge_background.jpg') no-repeat center center fixed;
       background-size: cover;
       color: white;
+      height: 100%;
       margin: 0;
       padding: 0;
-      text-align: center;
+      display: flex;
+     flex-direction: column;
     }
-    .header {
+    body > .footer-container {
+      margin-top: auto;
+    }
+    .container, #mainView, #activityView, #statsView {
+      flex: 1 0 auto;
+    }
+    main {
+     flex: 1;
+    }
+    .header-container {
+      width: 100%;
       background: #111;
       border-bottom: 2px solid #f4e733;
-      padding: 20px;
     }
-    .header img {
-      height: 60px;
-      margin: 0 10px;
+    .header-right {
+      width: 100%;
+      max-width: 1170px;
+      margin: auto;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+      padding: 20px 42px;
+      background-color: #111;
+      color: white;
+      box-sizing: border-box;
+    }
+    .header-right img.logo {
+      height: 70px;
+    }
+    .divider {
+      width: 1.5px;
+      height: 65px;
+      background-color: #f4e733;
+    }
+    .header-info {
+      text-align: center;
+    }
+    .arabic-name {
+      font-weight: bold;
+      font-size: 20px;
+    }
+    .english-name {
+      font-size: 14px;
+      color: #f4e733;
+    }
+    .container {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 20px;
+      max-width: 1200px;
+      margin: auto;
+      padding: 20px;
+      background: rgba(0, 0, 0, 0.9);
+      border-radius: 10px;
+      margin-top: 30px;
     }
     .popup {
       position: fixed;
@@ -70,15 +125,34 @@
       margin: 5px;
       cursor: pointer;
     }
+    footer {
+      background-color: #111;
+      color: white;
+      text-align: center;
+      padding: 20px;
+      border-top: 3px solid #f4e733;
+      font-size: 14px;
+    }
+    .social-icons a {
+      color: white;
+      margin: 0 8px;
+      font-size: 20px;
+    }
   </style>
 </head>
 <body>
 
-<div class="header">
-  <img src="Picture3.png" alt="شعار الشارقة">
-  <img src="logo.png" alt="شعار نادي كلباء">
-  <h1>نادي كلباء الرياضي الثقافي</h1>
-</div>
+  <header class="header-container">
+    <div class="header-right">
+      <img src="Picture3.png" alt="شعار الشارقة" class="logo">
+      <div class="divider"></div>
+      <img src="logo.png" alt="شعار نادي كلباء" class="logo">
+      <div class="header-info">
+        <div class="arabic-name">نادي كلباء الرياضي الثقافي</div>
+        <div class="english-name">KALBA SPORTS & CULTURAL CLUB</div>
+      </div>
+    </div>
+  </header>
 
 <div id="rolePopup" class="popup">
   <div class="popup-content">
@@ -235,5 +309,19 @@ function loadViewer() {
 
 </script>
 
+  <div class="footer-container">
+  <footer>
+    <p>© 2025 نادي كلباء الرياضي الثقافي - جميع الحقوق محفوظة</p>
+    <p style="font-size: 14px; color: #aaa; margin-top: -10px;">تم التطوير بواسطة روند أحمد الضمور</p>
+    <div class="social-icons">
+      <a href="https://facebook.com/Kalbasc1" target="_blank"><i class="fab fa-facebook-f"></i></a>
+      <a href="https://instagram.com/kalbasc" target="_blank"><i class="fab fa-instagram"></i></a>
+      <a href="https://x.com/Kalba_sc" target="_blank"><i class="fab fa-twitter"></i></a>
+      <a href="https://youtube.com/@kalbasc" target="_blank"><i class="fab fa-youtube"></i></a>
+      <a href="https://tiktok.com/@kalbasc" target="_blank"><i class="fab fa-tiktok"></i></a>
+    </div>
+  </footer>
+</div>  
+  
 </body>
 </html>
