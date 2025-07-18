@@ -3,8 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
   <title>نادي كلباء الرياضي الثقافي - التقييمات</title>
   <style>
+    
     @font-face {
       font-family: 'NotoKufiArabic';
       src: url('NotoKufiArabic.ttf') format('truetype');
@@ -217,17 +220,33 @@ async function loadPlayers() {
   const data = await response.json();
   const coachActivity = coaches[currentCoach].activity;
 
-  let table = `<h2>اللاعبين في نشاط ${coachActivity}</h2>
-    <table>
-      <tr><th>اسم اللاعب</th><th>المعرف</th><th>تقييم</th></tr>`;
+  let table = `
+    <h2>تقييم لاعبين الـ${coachActivity}</h2>
+    <div class="controls">
+      <div class="filter-bar">
+        <input type="text" id="filter-name" placeholder="🔍 الاسم..." onkeyup="filterTable()" autocomplete="off">
+        <input type="text" id="filter-id" placeholder="🔍 المعرّف..." onkeyup="filterTable()">
+        <input type="date" id="datePicker" onchange="filterTable()">
+        <button onclick="clearFilters()">مسح الفلاتر</button>
+        <button onclick="toggleEvaluation()" style="background: #f4e733;">🔄 بدء التقييم</button>
+      </div>
+    </div>
+    <table id="playersTable">
+      <thead>
+        <tr><th>المعرّف</th><th>اسم اللاعب وولي الأمر</th><th>تاريخ الحضور</th><th class="eval-col hidden">التقييم</th><th class="eval-col hidden">ملاحظات</th></tr>
+      </thead><tbody>`;
 
   data.filter(p => p.Activity === coachActivity).forEach(player => {
+    const parent = player['Parent Name'] || '';
+    const fullName = `${player['Child Name']} - ${parent}`;
+    const date = player['Date'] || '';
     table += `
       <tr>
-        <td>${player['Child Name']}</td>
         <td>${player.ID}</td>
-        <td>
-          <select onchange="submitEvaluation('${player['Child Name']}', '${player.Activity}', this.value)">
+        <td>${fullName}</td>
+        <td>${date}</td>
+        <td class="eval-col hidden">
+          <select onchange="submitEvaluation('${player['Child Name']}', '${player.Activity}', this.value, this.nextElementSibling.value)">
             <option value="">اختر التقييم</option>
             <option value="ممتاز">ممتاز</option>
             <option value="جيد جداً">جيد جداً</option>
@@ -236,56 +255,108 @@ async function loadPlayers() {
             <option value="ضعيف">ضعيف</option>
           </select>
         </td>
+        <td class="eval-col hidden"><input type="text" placeholder="ملاحظة..."></td>
       </tr>`;
   });
-  table += '</table>';
 
+  table += '</tbody></table>';
   document.getElementById('content').innerHTML = table;
 }
 
-function submitEvaluation(playerName, activity, evaluation) {
+function submitEvaluation(playerName, activity, evaluation, note) {
   if (!evaluation) return;
   const payload = {
     playerName,
     activity,
     evaluation,
     coach: currentCoach,
+    note,
     date: new Date().toISOString().split('T')[0]
   };
 
-fetch(evaluationsURL, {
-  method: 'POST',
-  mode: 'no-cors',
-  headers: {
-    'Content-Type': 'application/json'
-  },
-  body: JSON.stringify(payload)
-})
-.then(() => alert(`تم تقييم ${playerName} بنجاح (بدون تحقق من الرد)`))
-.catch(() => alert('❌ فشل الحفظ'));
+  fetch(evaluationsURL, {
+    method: 'POST',
+    mode: 'no-cors',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(payload)
+  })
+  .then(() => alert(`تم تقييم ${playerName} بنجاح`))
+  .catch(() => alert('❌ فشل الحفظ'));
 }
 
 async function loadEvaluations() {
   const res = await fetch(evaluationsURL);
   const data = await res.json();
 
-  const tbody = document.getElementById('evaluationsTable');
-  tbody.innerHTML = '';
+  let content = `
+    <h2>قائمة التقييمات</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>اسم اللاعب وولي الأمر</th>
+          <th>المعرّف</th>
+          <th>النشاط</th>
+          <th>التقييم</th>
+          <th>الملاحظات</th>
+          <th>المدرب</th>
+          <th>التاريخ</th>
+        </tr>
+      </thead>
+      <tbody id="evaluationsTable"></tbody>
+    </table>`;
 
+  document.getElementById('content').innerHTML = content;
+
+  const tbody = document.getElementById('evaluationsTable');
   data.forEach(ev => {
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td>${ev.playerName} ${ev.parentName || ''}</td>
-      <td>${ev.playerId}</td>
-      <td>${ev.activity}</td>
-      <td>${ev.evaluation}</td>
-      <td>${ev.coach}</td>
-      <td>${ev.date}</td>
+      <td>${ev.playerName || ''} ${ev.parentName || ''}</td>
+      <td>${ev.playerId || ''}</td>
+      <td>${ev.activity || ''}</td>
+      <td>${ev.evaluation || ''}</td>
+      <td>${ev.note || ''}</td>
+      <td>${ev.coach || ''}</td>
+      <td>${ev.date || ''}</td>
     `;
     tbody.appendChild(tr);
   });
 }
 
+function toggleEvaluation() {
+  document.querySelectorAll('.eval-col').forEach(col => {
+    col.classList.toggle('hidden');
+  });
+}
+
+function filterTable() {
+  const name = document.getElementById('filter-name').value.toLowerCase();
+  const id = document.getElementById('filter-id').value.toLowerCase();
+  const date = document.getElementById('datePicker').value;
+
+  const rows = document.querySelectorAll('#playersTable tbody tr');
+  rows.forEach(row => {
+    const rowId = row.cells[0].textContent.toLowerCase();
+    const rowName = row.cells[1].textContent.toLowerCase();
+    const rowDate = row.cells[2].textContent;
+
+    const show = (!name || rowName.includes(name)) &&
+                 (!id || rowId.includes(id)) &&
+                 (!date || rowDate === date);
+
+    row.style.display = show ? '' : 'none';
+  });
+}
+
+function clearFilters() {
+  document.getElementById('filter-name').value = '';
+  document.getElementById('filter-id').value = '';
+  document.getElementById('datePicker').value = '';
+  filterTable();
+}
+  
 function loadViewer() {
   fetch(evaluationsURL)
     .then(res => res.json())
