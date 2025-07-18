@@ -357,31 +357,61 @@ function clearFilters() {
   filterTable();
 }
   
-function loadViewer() {
-  fetch(evaluationsURL)
-    .then(res => res.json())
-    .then(data => {
-      let html = `
-        <h2>قائمة التقييمات</h2>
-        <table>
-          <tr><th>اسم اللاعب</th><th>المعرف</th><th>النشاط</th><th>التقييم</th><th>المدرب</th><th>التاريخ</th></tr>`;
+async function loadViewer() {
+  try {
+    const response = await fetch(evaluationsURL);
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    
+    if (!Array.isArray(data)) {
+      throw new Error('Invalid data format: Expected array');
+    }
 
-      data.forEach(ev => {
-        html += `
-          <tr>
-            <td>${ev.playerName} ${ev.parentName || ''}</td>
-            <td>${ev.playerId || ''}</td>
-            <td>${ev.activity}</td>
-            <td>${ev.evaluation}</td>
-            <td>${ev.coach}</td>
-            <td>${ev.date}</td>
-          </tr>`;
-      });
+    let html = `
+      <h2 style="text-align: right;">قائمة التقييمات</h2>
+      <table dir="rtl" style="width: 100%; border-collapse: collapse;">
+        <thead>
+          <tr style="background-color: #f4e733; color: black;">
+            <th style="padding: 12px; border: 1px solid #ddd;">اسم اللاعب</th>
+            <th style="padding: 12px; border: 1px solid #ddd;">النشاط</th>
+            <th style="padding: 12px; border: 1px solid #ddd;">التقييم</th>
+            <th style="padding: 12px; border: 1px solid #ddd;">المدرب</th>
+            <th style="padding: 12px; border: 1px solid #ddd;">التاريخ</th>
+          </tr>
+        </thead>
+        <tbody>`;
 
-      html += '</table>';
-      document.getElementById('content').innerHTML = html;
+    const startRow = data[0][0] === 'Timestamp' ? 1 : 0; 
+    
+    data.slice(startRow).forEach(row => {
+      html += `
+        <tr style="border-bottom: 1px solid #ddd;">
+          <td style="padding: 8px; text-align: right;">${row[1] || '---'}</td>
+          <td style="padding: 8px; text-align: right;">${row[2] || '---'}</td>
+          <td style="padding: 8px; text-align: right;">${row[3] || '---'}</td>
+          <td style="padding: 8px; text-align: right;">${row[5] || '---'}</td>
+          <td style="padding: 8px; text-align: right;">${row[6] || '---'}</td>
+        </tr>`;
     });
-}  
+
+    html += `</tbody></table>`;
+    
+    document.getElementById('content').innerHTML = html;
+
+  } catch (error) {
+    console.error('Fetch error:', error);
+    document.getElementById('content').innerHTML = `
+      <div style="color: red; text-align: center; padding: 20px; border: 1px solid red;">
+        ❌ فشل تحميل البيانات: ${error.message}
+        <br><small>الرجاء المحاولة لاحقاً أو مراجعة المسؤول</small>
+      </div>
+    `;
+  }
+}
 
 </script>
   </main>
