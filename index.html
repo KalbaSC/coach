@@ -174,13 +174,16 @@ function submitEvaluation(playerName, activity, evaluation) {
     date: new Date().toISOString().split('T')[0]
   };
 
-  fetch(evaluationsURL, {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify(payload)
-  })
-  .then(() => alert(`تم تقييم ${playerName} بـ ${evaluation}`))
-  .catch(() => alert('❌ حدث خطأ أثناء حفظ التقييم'));
+fetch(evaluationsURL, {
+  method: 'POST',
+  mode: 'no-cors',
+  headers: {
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify(payload)
+})
+.then(() => alert(`تم تقييم ${playerName} بنجاح (بدون تحقق من الرد)`))
+.catch(() => alert('❌ فشل الحفظ'));
 }
 
 async function loadEvaluations() {
