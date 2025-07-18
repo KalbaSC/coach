@@ -3,43 +3,53 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>بوابة مدربي نادي كلباء</title>
+  <title>نادي كلباء - بوابة الحضور والتقييم</title>
   <style>
     @font-face {
       font-family: 'NotoKufiArabic';
       src: url('NotoKufiArabic.ttf') format('truetype');
     }
-    html, body {
-      height: 100%;
-      margin: 0;
+    body {
       font-family: 'NotoKufiArabic', sans-serif;
       background: url('black_and_yellow_grunge_background.jpg') no-repeat center center fixed;
       background-size: cover;
       color: white;
+      margin: 0;
+      padding: 0;
+      text-align: center;
     }
-    .header-container {
+    .header {
       background: #111;
       border-bottom: 2px solid #f4e733;
-      text-align: center;
-      padding: 15px;
+      padding: 20px;
     }
-    .header-container img {
+    .header img {
       height: 60px;
       margin: 0 10px;
     }
-    .header-info .arabic-name {
+    .popup {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.9);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
+    .popup-content {
+      background: #222;
+      border: 2px solid #f4e733;
+      border-radius: 10px;
+      padding: 20px;
+      max-width: 300px;
+    }
+    .popup-content button {
+      background: #f4e733;
+      border: none;
+      padding: 10px 20px;
+      margin: 10px;
+      cursor: pointer;
       font-weight: bold;
-      font-size: 20px;
-    }
-    .header-info .english-name {
-      font-size: 14px;
-      color: #f4e733;
-    }
-    input, select, button {
-      margin: 5px;
-      padding: 10px;
-      border: 1px solid #f4e733;
-      border-radius: 5px;
     }
     table {
       width: 90%;
@@ -48,86 +58,141 @@
     }
     th, td {
       border: 1px solid #f4e733;
-      padding: 8px;
-      text-align: center;
+      padding: 10px;
     }
     th {
       background: #333;
+    }
+    button {
+      background: #f4e733;
+      border: none;
+      padding: 10px 20px;
+      margin: 5px;
+      cursor: pointer;
     }
   </style>
 </head>
 <body>
 
-<div class="header-container">
+<div class="header">
   <img src="Picture3.png" alt="شعار الشارقة">
   <img src="logo.png" alt="شعار نادي كلباء">
-  <div class="header-info">
-    <div class="arabic-name">نادي كلباء الرياضي الثقافي</div>
-    <div class="english-name">KALBA SPORTS & CULTURAL CLUB</div>
+  <h1>نادي كلباء الرياضي الثقافي</h1>
+</div>
+
+<div id="rolePopup" class="popup">
+  <div class="popup-content">
+    <h2>اختر نوع الدخول:</h2>
+    <button onclick="enterCoach()">مدرب</button>
+    <button onclick="enterViewer()">مشاهد</button>
   </div>
 </div>
 
-<h2>بوابة المدرب - تقييم اللاعبين</h2>
-<input type="date" id="dateFilter">
-<button onclick="loadPlayers()">عرض اللاعبين</button>
-<div id="playersContainer"></div>
+<div id="content"></div>
 
 <script>
+const evaluationsURL = 'https://script.google.com/macros/s/AKfycbzpbUmXmD3ik-2Cgc64UZeWBL6hLSc_LDDwg0YoSCR_4bOKy4YUj8PrVczBfTi-Rj6a/exec';
 const attendanceURL = 'https://script.google.com/macros/s/AKfycbxij6xIH_fypPRhklqQKURq-7xB5RJ3sC5dCBfwj4sJBjqnfXde1ncFrhCpDy04zuZW6g/exec';
-const evaluationURL = 'https://script.google.com/macros/s/AKfycbzpbUmXmD3ik-2Cgc64UZeWBL6hLSc_LDDwg0YoSCR_4bOKy4YUj8PrVczBfTi-Rj6a/exec';
-const currentCoach = 'مدرب الشطرنج'; // استبدله حسب تسجيل الدخول
-const coachActivity = 'شطرنج';
+
+const coaches = {
+  "handball1": { password: "pass1", activity: "كرة يد" },
+  "volley2": { password: "pass2", activity: "كرة طائرة" },
+  "basket3": { password: "pass3", activity: "كرة سلة" },
+  "chess4": { password: "pass4", activity: "شطرنج" }
+};
+
+let currentCoach = '';
+
+function enterCoach() {
+  document.getElementById('rolePopup').style.display = 'none';
+  loadCoachLogin();
+}
+
+function enterViewer() {
+  document.getElementById('rolePopup').style.display = 'none';
+  loadViewer();
+}
+
+function loadCoachLogin() {
+  document.getElementById('content').innerHTML = `
+    <h2>تسجيل دخول المدرب</h2>
+    <input type='text' id='username' placeholder='اسم المستخدم'><br>
+    <input type='password' id='password' placeholder='كلمة المرور'><br>
+    <button onclick='authenticateCoach()'>دخول</button>
+  `;
+}
+
+function authenticateCoach() {
+  const username = document.getElementById('username').value;
+  const password = document.getElementById('password').value;
+  if (coaches[username] && coaches[username].password === password) {
+    currentCoach = username;
+    loadPlayers();
+  } else {
+    alert('بيانات الدخول غير صحيحة');
+  }
+}
 
 async function loadPlayers() {
-  const selectedDate = document.getElementById('dateFilter').value;
-  if (!selectedDate) return alert('يرجى اختيار تاريخ');
-
   const response = await fetch(attendanceURL);
   const data = await response.json();
-  const players = data.filter(p => p.Activity === coachActivity && p.Timestamp.startsWith(selectedDate));
+  const coachActivity = coaches[currentCoach].activity;
 
-  let html = `<h3>اللاعبين في ${coachActivity} بتاريخ ${selectedDate}</h3>
+  let table = `<h2>اللاعبين في نشاط ${coachActivity}</h2>
     <table>
-    <tr><th>اسم اللاعب</th><th>المعرف</th><th>التقييم</th></tr>`;
+      <tr><th>اسم اللاعب</th><th>المعرف</th><th>تقييم</th></tr>`;
 
-  players.forEach(player => {
-    html += `<tr>
-      <td>${player['Child Name']} ${player.Parent || ''}</td>
-      <td>${player.ID}</td>
-      <td>
-        <select onchange="submitEvaluation('${player.ID}', this.value)">
-          <option value="">اختر التقييم</option>
-          <option value="ممتاز">ممتاز</option>
-          <option value="جيد جداً">جيد جداً</option>
-          <option value="جيد">جيد</option>
-          <option value="مقبول">مقبول</option>
-          <option value="ضعيف">ضعيف</option>
-        </select>
-      </td>
-    </tr>`;
+  data.filter(p => p.Activity === coachActivity).forEach(player => {
+    table += `
+      <tr>
+        <td>${player['Child Name']}</td>
+        <td>${player.ID}</td>
+        <td>
+          <select onchange="submitEvaluation('${player['Child Name']}', '${player.Activity}', this.value)">
+            <option value="">اختر التقييم</option>
+            <option value="ممتاز">ممتاز</option>
+            <option value="جيد جداً">جيد جداً</option>
+            <option value="جيد">جيد</option>
+            <option value="مقبول">مقبول</option>
+            <option value="ضعيف">ضعيف</option>
+          </select>
+        </td>
+      </tr>`;
   });
-  html += '</table>';
-  document.getElementById('playersContainer').innerHTML = html;
+  table += '</table>';
+
+  document.getElementById('content').innerHTML = table;
 }
 
-function submitEvaluation(playerId, evaluation) {
+function submitEvaluation(playerName, activity, evaluation) {
   if (!evaluation) return;
-  const payload = {
-    coach: currentCoach,
-    activity: coachActivity,
-    playerId: playerId,
-    evaluation: evaluation
-  };
-
-  fetch(evaluationURL, {
-    method: 'POST',
-    body: JSON.stringify(payload),
-    headers: { 'Content-Type': 'application/json' }
-  })
-  .then(res => res.text())
-  .then(() => alert(`تم تقييم اللاعب ${playerId} بـ ${evaluation}`))
-  .catch(() => alert('فشل إرسال التقييم'));
+  const today = new Date().toISOString().split('T')[0];
+  evaluations.push({player: playerName, activity, evaluation, coach: currentCoach, date: today});
+  alert(`تم تقييم ${playerName} بـ ${evaluation}`);
 }
+
+async function loadEvaluations() {
+  const res = await fetch(evaluationsURL);
+  const data = await res.json();
+
+  const tbody = document.getElementById('evaluationsTable');
+  tbody.innerHTML = '';
+
+  data.forEach(ev => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${ev.playerName} ${ev.parentName || ''}</td>
+      <td>${ev.playerId}</td>
+      <td>${ev.activity}</td>
+      <td>${ev.evaluation}</td>
+      <td>${ev.coach}</td>
+      <td>${ev.date}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+window.onload = loadEvaluations;
 </script>
 
 </body>
