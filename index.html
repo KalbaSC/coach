@@ -3,69 +3,48 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>نادي كلباء - بوابة الحضور والتقييم</title>
+  <title>بوابة مدربي نادي كلباء</title>
   <style>
-    body {
-      font-family: 'Arial', sans-serif;
+    @font-face {
+      font-family: 'NotoKufiArabic';
+      src: url('NotoKufiArabic.ttf') format('truetype');
+    }
+    html, body {
+      height: 100%;
+      margin: 0;
+      font-family: 'NotoKufiArabic', sans-serif;
       background: url('black_and_yellow_grunge_background.jpg') no-repeat center center fixed;
       background-size: cover;
       color: white;
-      margin: 0;
-      padding: 0;
-      text-align: center;
     }
-    .header {
+    .header-container {
       background: #111;
       border-bottom: 2px solid #f4e733;
-      padding: 20px;
+      text-align: center;
+      padding: 15px;
     }
-    .header img {
+    .header-container img {
       height: 60px;
       margin: 0 10px;
     }
-    .popup {
-      position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0,0,0,0.9);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      z-index: 1000;
-    }
-    .popup-content {
-      background: #222;
-      border: 2px solid #f4e733;
-      border-radius: 10px;
-      padding: 20px;
-      max-width: 300px;
-    }
-    .popup-content button {
-      background: #f4e733;
-      border: none;
-      padding: 10px 20px;
-      margin: 10px;
-      cursor: pointer;
+    .header-info .arabic-name {
       font-weight: bold;
+      font-size: 20px;
     }
-    input, select, textarea {
-      padding: 8px;
+    .header-info .english-name {
+      font-size: 14px;
+      color: #f4e733;
+    }
+    input, select, button {
       margin: 5px;
+      padding: 10px;
       border: 1px solid #f4e733;
-      border-radius: 5px;
-      width: 80%;
-    }
-    button {
-      background: #f4e733;
-      border: none;
-      padding: 8px 15px;
-      margin: 5px;
-      cursor: pointer;
       border-radius: 5px;
     }
     table {
-      margin: auto;
-      border-collapse: collapse;
       width: 90%;
+      margin: 20px auto;
+      border-collapse: collapse;
     }
     th, td {
       border: 1px solid #f4e733;
@@ -79,141 +58,77 @@
 </head>
 <body>
 
-  <div class="header">
-    <img src="Picture3.png" alt="شعار الشارقة">
-    <img src="logo.png" alt="شعار نادي كلباء">
-    <h1>نادي كلباء الرياضي الثقافي</h1>
+<div class="header-container">
+  <img src="Picture3.png" alt="شعار الشارقة">
+  <img src="logo.png" alt="شعار نادي كلباء">
+  <div class="header-info">
+    <div class="arabic-name">نادي كلباء الرياضي الثقافي</div>
+    <div class="english-name">KALBA SPORTS & CULTURAL CLUB</div>
   </div>
+</div>
 
-  <div id="rolePopup" class="popup">
-    <div class="popup-content">
-      <h2>اختر نوع الدخول:</h2>
-      <button onclick="enterCoach()">مدرب</button>
-      <button onclick="enterViewer()">مشاهد</button>
-    </div>
-  </div>
+<h2>بوابة المدرب - تقييم اللاعبين</h2>
+<input type="date" id="dateFilter">
+<button onclick="loadPlayers()">عرض اللاعبين</button>
+<div id="playersContainer"></div>
 
-  <div id="content"></div>
+<script>
+const attendanceURL = 'https://script.google.com/macros/s/AKfycbxij6xIH_fypPRhklqQKURq-7xB5RJ3sC5dCBfwj4sJBjqnfXde1ncFrhCpDy04zuZW6g/exec';
+const evaluationURL = 'https://script.google.com/macros/s/AKfycbzpbUmXmD3ik-2Cgc64UZeWBL6hLSc_LDDwg0YoSCR_4bOKy4YUj8PrVczBfTi-Rj6a/exec';
+const currentCoach = 'مدرب الشطرنج'; // استبدله حسب تسجيل الدخول
+const coachActivity = 'شطرنج';
 
-  <script>
-    const attendanceURL = 'https://script.google.com/macros/s/AKfycbxij6xIH_fypPRhklqQKURq-7xB5RJ3sC5dCBfwj4sJBjqnfXde1ncFrhCpDy04zuZW6g/exec';
-    const evaluations = [];
+async function loadPlayers() {
+  const selectedDate = document.getElementById('dateFilter').value;
+  if (!selectedDate) return alert('يرجى اختيار تاريخ');
 
-    const coaches = {
-      "handball1": { password: "pass1", activity: "كرة يد" },
-      "volley2": { password: "pass2", activity: "كرة طائرة" },
-      "basket3": { password: "pass3", activity: "كرة سلة" },
-      "chess4": { password: "pass4", activity: "شطرنج" }
-    };
+  const response = await fetch(attendanceURL);
+  const data = await response.json();
+  const players = data.filter(p => p.Activity === coachActivity && p.Timestamp.startsWith(selectedDate));
 
-    const evaluationCriteria = {
-      "كرة يد": ["قوة التصويب", "دقة التمرير", "التمركز الدفاعي", "اللياقة البدنية", "الانسجام مع الفريق"],
-      "كرة طائرة": ["الإرسال", "الاستقبال", "الضرب الساحق", "التمركز", "التواصل مع الفريق"],
-      "كرة سلة": ["التصويب", "المراوغة", "التمرير", "اللياقة", "التحرك بدون كرة"],
-      "شطرنج": ["التكتيك", "التخطيط", "الافتتاحيات", "إدارة الوقت", "التركيز"]
-    };
+  let html = `<h3>اللاعبين في ${coachActivity} بتاريخ ${selectedDate}</h3>
+    <table>
+    <tr><th>اسم اللاعب</th><th>المعرف</th><th>التقييم</th></tr>`;
 
-    let currentCoach = '';
+  players.forEach(player => {
+    html += `<tr>
+      <td>${player['Child Name']} ${player.Parent || ''}</td>
+      <td>${player.ID}</td>
+      <td>
+        <select onchange="submitEvaluation('${player.ID}', this.value)">
+          <option value="">اختر التقييم</option>
+          <option value="ممتاز">ممتاز</option>
+          <option value="جيد جداً">جيد جداً</option>
+          <option value="جيد">جيد</option>
+          <option value="مقبول">مقبول</option>
+          <option value="ضعيف">ضعيف</option>
+        </select>
+      </td>
+    </tr>`;
+  });
+  html += '</table>';
+  document.getElementById('playersContainer').innerHTML = html;
+}
 
-    function enterCoach() {
-      document.getElementById('rolePopup').style.display = 'none';
-      loadCoachLogin();
-    }
+function submitEvaluation(playerId, evaluation) {
+  if (!evaluation) return;
+  const payload = {
+    coach: currentCoach,
+    activity: coachActivity,
+    playerId: playerId,
+    evaluation: evaluation
+  };
 
-    function enterViewer() {
-      document.getElementById('rolePopup').style.display = 'none';
-      loadViewer();
-    }
-
-    function loadCoachLogin() {
-      document.getElementById('content').innerHTML = `
-        <h2>دخول المدرب</h2>
-        <input type='text' id='username' placeholder='اسم المستخدم'><br>
-        <input type='password' id='password' placeholder='كلمة المرور'><br>
-        <button onclick='authenticateCoach()'>دخول</button>
-      `;
-    }
-
-    function authenticateCoach() {
-      const username = document.getElementById('username').value;
-      const password = document.getElementById('password').value;
-      if (coaches[username] && coaches[username].password === password) {
-        currentCoach = username;
-        loadEvaluationForm(coaches[username].activity);
-      } else {
-        alert('بيانات الدخول غير صحيحة');
-      }
-    }
-
-    function loadEvaluationForm(activity) {
-      let form = `<h2>تقييم ${activity}</h2><input type='text' id='playerName' placeholder='اسم اللاعب'><br>`;
-      evaluationCriteria[activity].forEach((crit, idx) => {
-        form += `<label>${crit}</label>
-          <select id='crit${idx}'>
-            <option value='5'>ممتاز</option>
-            <option value='4'>جيد جداً</option>
-            <option value='3'>جيد</option>
-            <option value='2'>مقبول</option>
-            <option value='1'>ضعيف</option>
-          </select><br>`;
-      });
-      form += `<textarea id='notes' placeholder='ملاحظات إضافية'></textarea><br>
-        <button onclick='saveEvaluation()'>حفظ التقييم</button>`;
-      document.getElementById('content').innerHTML = form;
-    }
-
-    function saveEvaluation() {
-      const activity = coaches[currentCoach].activity;
-      const player = document.getElementById('playerName').value;
-      const notes = document.getElementById('notes').value;
-      const scores = {};
-      evaluationCriteria[activity].forEach((crit, idx) => {
-        scores[crit] = parseInt(document.getElementById(`crit${idx}`).value);
-      });
-
-      evaluations.push({
-        coach: currentCoach,
-        activity: activity,
-        player: player,
-        scores: scores,
-        notes: notes
-      });
-
-      alert('تم حفظ التقييم بنجاح');
-    }
-
-    function loadViewer() {
-      fetch(attendanceURL)
-        .then(response => response.json())
-        .then(data => {
-          let html = '<h2>سجلات الحضور</h2><table><tr><th>التاريخ</th><th>الاسم</th><th>المعرف</th><th>الموظف</th><th>النشاط</th></tr>';
-          data.forEach(row => {
-            html += `<tr>
-              <td>${row.Timestamp}</td>
-              <td>${row['Child Name']}</td>
-              <td>${row.ID}</td>
-              <td>${row['Scanned By']}</td>
-              <td>${row.Activity || 'عام'}</td>
-            </tr>`;
-          });
-          html += '</table>';
-
-          html += '<h2>التقييمات</h2><table><tr><th>المدرب</th><th>النشاط</th><th>اللاعب</th><th>الدرجات</th><th>ملاحظات</th></tr>';
-          evaluations.forEach(ev => {
-            html += `<tr>
-              <td>${ev.coach}</td>
-              <td>${ev.activity}</td>
-              <td>${ev.player}</td>
-              <td>${Object.entries(ev.scores).map(([k,v]) => `${k}: ${v}`).join(', ')}</td>
-              <td>${ev.notes}</td>
-            </tr>`;
-          });
-          html += '</table>';
-
-          document.getElementById('content').innerHTML = html;
-        });
-    }
-  </script>
+  fetch(evaluationURL, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+    headers: { 'Content-Type': 'application/json' }
+  })
+  .then(res => res.text())
+  .then(() => alert(`تم تقييم اللاعب ${playerId} بـ ${evaluation}`))
+  .catch(() => alert('فشل إرسال التقييم'));
+}
+</script>
 
 </body>
 </html>
