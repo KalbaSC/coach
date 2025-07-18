@@ -166,9 +166,21 @@ async function loadPlayers() {
 
 function submitEvaluation(playerName, activity, evaluation) {
   if (!evaluation) return;
-  const today = new Date().toISOString().split('T')[0];
-  evaluations.push({player: playerName, activity, evaluation, coach: currentCoach, date: today});
-  alert(`تم تقييم ${playerName} بـ ${evaluation}`);
+  const payload = {
+    playerName,
+    activity,
+    evaluation,
+    coach: currentCoach,
+    date: new Date().toISOString().split('T')[0]
+  };
+
+  fetch(evaluationsURL, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(payload)
+  })
+  .then(() => alert(`تم تقييم ${playerName} بـ ${evaluation}`))
+  .catch(() => alert('❌ حدث خطأ أثناء حفظ التقييم'));
 }
 
 async function loadEvaluations() {
@@ -192,7 +204,32 @@ async function loadEvaluations() {
   });
 }
 
-window.onload = loadEvaluations;
+function loadViewer() {
+  fetch(evaluationsURL)
+    .then(res => res.json())
+    .then(data => {
+      let html = `
+        <h2>قائمة التقييمات</h2>
+        <table>
+          <tr><th>اسم اللاعب</th><th>المعرف</th><th>النشاط</th><th>التقييم</th><th>المدرب</th><th>التاريخ</th></tr>`;
+
+      data.forEach(ev => {
+        html += `
+          <tr>
+            <td>${ev.playerName} ${ev.parentName || ''}</td>
+            <td>${ev.playerId || ''}</td>
+            <td>${ev.activity}</td>
+            <td>${ev.evaluation}</td>
+            <td>${ev.coach}</td>
+            <td>${ev.date}</td>
+          </tr>`;
+      });
+
+      html += '</table>';
+      document.getElementById('content').innerHTML = html;
+    });
+}  
+
 </script>
 
 </body>
