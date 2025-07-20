@@ -177,6 +177,12 @@
 <script>
 const evaluationsURL = 'https://script.google.com/macros/s/AKfycbzpbUmXmD3ik-2Cgc64UZeWBL6hLSc_LDDwg0YoSCR_4bOKy4YUj8PrVczBfTi-Rj6a/exec';
 const attendanceURL = 'https://script.google.com/macros/s/AKfycbxij6xIH_fypPRhklqQKURq-7xB5RJ3sC5dCBfwj4sJBjqnfXde1ncFrhCpDy04zuZW6g/exec';
+const evaluationCriteria = {
+  "كرة يد": ["التصويب", "اللياقة", "التعاون", "الدفاع", "التركيز"],
+  "كرة طائرة": ["الارسال", "الاستقبال", "القفز", "اللياقة", "التعاون"],
+  "كرة سلة": ["التصويب", "المراوغة", "التمرير", "الدفاع", "الارتداد"],
+  "شطرنج": ["التخطيط", "التركيز", "التكتيك", "الصبر", "الابداع"]
+};
 
 const coaches = {
   "handball1": { password: "pass1", activity: "كرة يد" },
@@ -248,12 +254,14 @@ async function loadPlayers() {
         <td>${fullName}</td>
         <td>${date}</td>
         <td class="eval-col hidden">
-<select onchange="submitEvaluation(
-    '${player['Child Name']}',
-    '${player.Activity}',
-    this.value,
-    this.parentElement.parentElement.querySelector('input')?.value || ''
-)">
+<td class="eval-col hidden">
+  ${renderCriteriaInputs(player.ID, player.Activity)}
+  <div id="total-${player.ID}">الإجمالي: 0</div>
+  <button onclick="submitEvaluation('${player['Child Name']}', '${player.Activity}', '${player.ID}')">حفظ التقييم</button>
+</td>
+<td class="eval-col hidden">
+  <input type="text" id="notes-${player.ID}" placeholder="ملاحظة...">
+</td>
             <option value="">اختر التقييم</option>
             <option value="ممتاز">ممتاز</option>
             <option value="جيد جداً">جيد جداً</option>
@@ -269,28 +277,54 @@ async function loadPlayers() {
   table += '</tbody></table>';
   document.getElementById('content').innerHTML = table;
 }
+  
+function renderCriteriaInputs(playerId, activity) {
+  const criteria = evaluationCriteria[activity] || [];
+  return criteria.map((criterion, index) => `
+    <label>${criterion}</label>
+    <input type="number" id="${playerId}-c${index}" min="1" max="5" value="3" onchange="calculateTotal('${playerId}', '${activity}')"><br>
+  `).join('');
+}
+  
+function calculateTotal(playerId, activity) {
+  const criteria = evaluationCriteria[activity] || [];
+  let total = 0;
 
-function submitEvaluation(playerName, activity, evaluation, note) {
-  if (!evaluation) return;
+  criteria.forEach((_, index) => {
+    const val = parseInt(document.getElementById(`${playerId}-c${index}`).value) || 0;
+    total += val;
+  });
+
+  document.getElementById(`total-${playerId}`).textContent = `الإجمالي: ${total}`;
+}
+
+function submitEvaluation(playerName, activity, playerId) {
+  const criteria = evaluationCriteria[activity] || [];
+  const scores = {};
+  let total = 0;
+
+  criteria.forEach((criterion, index) => {
+    const score = parseInt(document.getElementById(`${playerId}-c${index}`).value) || 0;
+    scores[criterion] = score;
+    total += score;
+  });
+
+  const maxScore = criteria.length * 5;
+  const percentage = Math.round((total / maxScore) * 100);
+
   const payload = {
     playerName,
     activity,
-    evaluation,
+    scores,
+    total,
+    maxScore,
+    percentage,
+    note: document.getElementById(`notes-${playerId}`).value,
     coach: currentCoach,
-    note,
     date: new Date().toISOString().split('T')[0]
   };
 
-  fetch(evaluationsURL, {
-    method: 'POST',
-    mode: 'no-cors',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(payload)
-  })
-  .then(() => alert(`تم تقييم ${playerName} بنجاح`))
-  .catch(() => alert('❌ فشل الحفظ'));
+  console.log(payload); 
 }
 
 async function loadEvaluations() {
