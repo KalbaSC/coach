@@ -245,32 +245,23 @@ async function loadPlayers() {
       </thead><tbody>`;
 
   data.filter(p => p.Activity === coachActivity).forEach(player => {
-       const parent = player['Parent'] || '';
-       const date = player['Timestamp'] ? new Date(player['Timestamp']).toLocaleDateString('ar-EG') : '';
-       const fullName = `${player['Child Name']} ${parent}`;
+    const parent = player['Parent'] || '';
+    const date = player['Timestamp'] ? new Date(player['Timestamp']).toLocaleDateString('ar-EG') : '';
+    const fullName = `${player['Child Name']} ${parent}`;
+
     table += `
       <tr>
         <td>${player.ID}</td>
         <td>${fullName}</td>
         <td>${date}</td>
         <td class="eval-col hidden">
-<td class="eval-col hidden">
-  ${renderCriteriaInputs(player.ID, player.Activity)}
-  <div id="total-${player.ID}">الإجمالي: 0</div>
-  <button onclick="submitEvaluation('${player['Child Name']}', '${player.Activity}', '${player.ID}')">حفظ التقييم</button>
-</td>
-<td class="eval-col hidden">
-  <input type="text" id="notes-${player.ID}" placeholder="ملاحظة...">
-</td>
-            <option value="">اختر التقييم</option>
-            <option value="ممتاز">ممتاز</option>
-            <option value="جيد جداً">جيد جداً</option>
-            <option value="جيد">جيد</option>
-            <option value="مقبول">مقبول</option>
-            <option value="ضعيف">ضعيف</option>
-          </select>
+          ${renderCriteriaInputs(player.ID, player.Activity)}
+          <div id="total-${player.ID}">الإجمالي: 0</div>
+          <button onclick="submitEvaluation('${player['Child Name']}', '${player.Activity}', '${player.ID}')">حفظ التقييم</button>
         </td>
-        <td class="eval-col hidden"><input type="text" placeholder="ملاحظة..."></td>
+        <td class="eval-col hidden">
+          <input type="text" id="notes-${player.ID}" placeholder="ملاحظة...">
+        </td>
       </tr>`;
   });
 
