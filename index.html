@@ -239,7 +239,7 @@ async function loadPlayers() {
       </thead><tbody>`;
 
   data.filter(p => p.Activity === coachActivity).forEach(player => {
-    const parent = player['Parent Name'] || '';
+    const parent = player['Parent Name'] || player.ParentName || '';
     const fullName = `${player['Child Name']} - ${parent}`;
     const parent = player.ParentName || '';
     const date = player['Date'] || '';
