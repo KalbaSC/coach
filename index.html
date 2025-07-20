@@ -239,9 +239,9 @@ async function loadPlayers() {
       </thead><tbody>`;
 
   data.filter(p => p.Activity === coachActivity).forEach(player => {
-    const parent = player['Parent Name'] || player.ParentName || '';
-    const fullName = `${player['Child Name']} - ${parent}`;
-    const date = player['Date'] || '';
+       const parent = player['Parent'] || '';
+       const date = player['Timestamp'] ? new Date(player['Timestamp']).toLocaleDateString('ar-EG') : '';
+       const fullName = `${player['Child Name']} - ${parent}`;
     table += `
       <tr>
         <td>${player.ID}</td>
