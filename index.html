@@ -117,6 +117,8 @@
     th, td {
       border: 1px solid #f4e733;
       padding: 10px;
+      text-align: center; 
+      vertical-align: middle;
     }
     th {
       background: #333;
@@ -239,6 +241,7 @@ async function loadPlayers() {
   data.filter(p => p.Activity === coachActivity).forEach(player => {
     const parent = player['Parent Name'] || '';
     const fullName = `${player['Child Name']} - ${parent}`;
+    const parent = player.ParentName || '';
     const date = player['Date'] || '';
     table += `
       <tr>
