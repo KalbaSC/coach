@@ -246,7 +246,12 @@ async function loadPlayers() {
         <td>${fullName}</td>
         <td>${date}</td>
         <td class="eval-col hidden">
-          <select onchange="submitEvaluation('${player['Child Name']}', '${player.Activity}', this.value, this.nextElementSibling.value)">
+<select onchange="submitEvaluation(
+    '${player['Child Name']}',
+    '${player.Activity}',
+    this.value,
+    this.parentElement.parentElement.querySelector('input')?.value || ''
+)">
             <option value="">اختر التقييم</option>
             <option value="ممتاز">ممتاز</option>
             <option value="جيد جداً">جيد جداً</option>
