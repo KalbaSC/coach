@@ -257,7 +257,7 @@ async function loadPlayers() {
         <td class="eval-col hidden">
           ${renderCriteriaInputs(player.ID, player.Activity)}
           <div id="total-${player.ID}">الإجمالي: 0</div>
-          <button onclick="submitEvaluation('${player['Child Name']}', '${player.Activity}', '${player.ID}')">حفظ التقييم</button>
+          <button onclick="submitEvaluation('${fullName}', '${player.Activity}', '${player.ID}')">حفظ التقييم</button>
         </td>
         <td class="eval-col hidden">
           <input type="text" id="notes-${player.ID}" placeholder="ملاحظة...">
