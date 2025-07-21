@@ -359,34 +359,40 @@ function saveEvaluation() {
 
   const maxScore = criteria.length * 5;
   const percentage = Math.round((total / maxScore) * 100);
+  const evaluationText = getEvaluationText(percentage);
 
   const payload = {
-    playerName: player['Child Name'],
-    parentName: player['Parent'] || '',
-    playerId: player.ID,
-    activity: player.Activity,
-    scores: scores,
-    total: total,
-    maxScore: maxScore,
-    percentage: percentage,
-    note: document.getElementById(`notes-${player.ID}`).value,
-    coach: currentCoach,
-    date: new Date().toISOString().split('T')[0]
+    'Timestamp': new Date().toISOString(),
+    'Player Name': player['Child Name'],
+    'Activity': player.Activity,
+    'Evaluation': evaluationText,
+    'Note': document.getElementById(`notes-${player.ID}`).value,
+    'Coach': currentCoach,
+    'Date': new Date().toISOString().split('T')[0]
   };
 
-fetch(evaluationsURL, {
-  method: 'POST',
-  mode: 'no-cors',
-  body: JSON.stringify(payload),
-  headers: { 'Content-Type': 'application/json' }
-})
-.then(() => {
-  alert('✅ تم حفظ التقييم بنجاح (بلا تأكيد استجابة)');
-})
-.catch(err => {
-  console.error('❌ خطأ في الحفظ:', err);
-  alert('❌ فشل في حفظ التقييم');
-});
+  fetch(evaluationsURL, {
+    method: 'POST',
+    mode: 'no-cors',
+    body: JSON.stringify(payload),
+    headers: { 'Content-Type': 'application/json' }
+  })
+  .then(() => {
+    alert('✅ تم حفظ التقييم بنجاح');
+    nextPlayer();
+  })
+  .catch(err => {
+    console.error('❌ خطأ في الحفظ:', err);
+    alert('❌ فشل في حفظ التقييم');
+  });
+}
+
+function getEvaluationText(percentage) {
+  if (percentage >= 85) return 'ممتاز';
+  if (percentage >= 70) return 'جيد جداً';
+  if (percentage >= 50) return 'جيد';
+  if (percentage >= 30) return 'مقبول';
+  return 'ضعيف';
 }
 
 function nextPlayer() {
@@ -614,7 +620,7 @@ function renderEvaluations(data) {
     data.forEach(row => {
       html += `
         <tr>
-          <td>${row.Timestamp || '---'}</td>
+          <td>${formatArabicDate(row.Timestamp) || '---'}</td>
           <td>${row['Player Name'] || '---'}</td>
           <td>${row.Activity || '---'}</td>
           <td>${row.Evaluation || '---'}</td>
@@ -632,6 +638,12 @@ function renderEvaluations(data) {
         ❌ فشل تحميل البيانات: ${error.message}
       </div>`;
   }
+}
+
+function formatArabicDate(dateString) {
+  if (!dateString) return '';
+  const date = new Date(dateString);
+  return date.toLocaleDateString('ar-EG');
 }
   
 </script>
