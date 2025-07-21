@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-  
+
   <title>نادي كلباء الرياضي الثقافي - التقييمات</title>
   <style>
 
@@ -36,9 +36,6 @@
     }
     main {
      flex: 1;
-     display: flex;
-     align-items: center;
-     justify-content: center;
     }
     .header-container {
       width: 100%;
@@ -88,36 +85,6 @@
       border-radius: 10px;
       margin-top: 30px;
     }
-.login-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  background: rgba(0,0,0,0.7);
-  padding: 30px;
-  border-radius: 10px;
-  width: 300px;
-  margin: 100px auto; 
-}
-.login-container input:focus {
-  outline: none;
-  border: 2px solid #f4e733;
-  background: #222;
-  color: white;
-}
-.login-container button {
-  width: 100%;
-  padding: 10px;
-  background-color: #f4e733;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-  font-weight: bold;
-}
-.login-container button:hover {
-  background-color: #ffe600;
-}
     .popup {
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
@@ -202,7 +169,7 @@
 
 <main style="flex: 1;">
     <div class="container"> 
-      
+
 <div id="content"></div>
 
        </div>
@@ -218,10 +185,10 @@ const evaluationCriteria = {
 };
 
 const coaches = {
-  "handball": { password: "pass1", activity: "كرة يد" },
-  "voll": { password: "pass1", activity: "كرة طائرة" },
-  "basket": { password: "pass1", activity: "كرة سلة" },
-  "chess": { password: "pass1", activity: "شطرنج" }
+  "handball1": { password: "pass1", activity: "كرة يد" },
+  "volley2": { password: "pass2", activity: "كرة طائرة" },
+  "basket3": { password: "pass3", activity: "كرة سلة" },
+  "chess4": { password: "pass4", activity: "شطرنج" }
 };
 
 let currentCoach = '';
@@ -238,200 +205,70 @@ function enterViewer() {
 
 function loadCoachLogin() {
   document.getElementById('content').innerHTML = `
-    <div class="login-container">
-      <h2>تسجيل دخول المدرب</h2>
-      <input type='text' id='username' placeholder='اسم المستخدم' onkeypress="handleKeyPress(event)"><br>
-      <input type='password' id='password' placeholder='كلمة المرور' onkeypress="handleKeyPress(event)"><br>
-      <button onclick='authenticateCoach()'>دخول</button>
-      <button onclick='enterViewer()' style="margin-top: 10px; background: #ccc;">الرجوع كمشاهد</button>
-    </div>
-    <div id="login-error" style="color: red; margin-top: 10px;"></div>
+    <h2>تسجيل دخول المدرب</h2>
+    <input type='text' id='username' placeholder='اسم المستخدم'><br>
+    <input type='password' id='password' placeholder='كلمة المرور'><br>
+    <button onclick='authenticateCoach()'>دخول</button>
   `;
 }
-
-function handleKeyPress(event) {
-  if (event.key === 'Enter') {
-    authenticateCoach();
-  }
-}
-
-currentCoach = sessionStorage.getItem('coach') || '';
 
 function authenticateCoach() {
-  const username = document.getElementById('username').value.trim();
-  const password = document.getElementById('password').value.trim();
-
+  const username = document.getElementById('username').value;
+  const password = document.getElementById('password').value;
   if (coaches[username] && coaches[username].password === password) {
     currentCoach = username;
-    sessionStorage.setItem('coach', username);
     loadPlayers();
   } else {
-    document.getElementById('login-error').textContent = '❌ بيانات الدخول غير صحيحة';
+    alert('بيانات الدخول غير صحيحة');
   }
 }
 
-let playersData = [];
-let currentPlayerIndex = 0;
-  
-function loadPlayers() {
-  document.getElementById('content').innerHTML = '<p>⏳ جاري تحميل اللاعبين...</p>';
+async function loadPlayers() {
+  const response = await fetch(attendanceURL);
+  const data = await response.json();
+  const coachActivity = coaches[currentCoach].activity;
 
-  fetch(attendanceURL)
-    .then(res => res.json())
-    .then(data => {
-      const coachActivity = coaches[currentCoach].activity;
-      playersData = data.filter(p => p.Activity === coachActivity);
+  let table = `
+    <h2>تقييم لاعبين الـ${coachActivity}</h2>
+    <div class="controls">
+      <div class="filter-bar">
+        <input type="text" id="filter-name" placeholder="🔍 الاسم..." onkeyup="filterTable()" autocomplete="off">
+        <input type="text" id="filter-id" placeholder="🔍 المعرّف..." onkeyup="filterTable()">
+        <input type="date" id="datePicker" onchange="filterTable()">
+        <button onclick="clearFilters()">مسح الفلاتر</button>
+        <button onclick="toggleEvaluation()" style="background: #f4e733;">🔄 بدء التقييم</button>
+      </div>
+    </div>
+    <table id="playersTable">
+      <thead>
+        <tr><th>المعرّف</th><th>اسم اللاعب وولي الأمر</th><th>تاريخ الحضور</th><th class="eval-col hidden">التقييم</th><th class="eval-col hidden">ملاحظات</th></tr>
+      </thead><tbody>`;
 
-      let table = `
-        <h2>قائمة اللاعبين - ${coachActivity}</h2>
-        <table>
-          <thead>
-            <tr>
-              <th>المعرف</th>
-              <th>اسم اللاعب</th>
-              <th>تاريخ الحضور</th>
-              <th>النشاط</th>
-            </tr>
-          </thead>
-          <tbody>`;
+  data.filter(p => p.Activity === coachActivity).forEach(player => {
+    const parent = player['Parent'] || '';
+    const date = player['Timestamp'] ? new Date(player['Timestamp']).toLocaleDateString('ar-EG') : '';
+    const fullName = `${player['Child Name']} ${parent}`;
 
-      playersData.forEach(player => {
-        const parent = player['Parent'] || '';
-        const date = new Date(player['Timestamp']).toLocaleDateString('ar-EG');
-        const fullName = `${player['Child Name']} ${parent}`;
-
-        table += `
-          <tr>
-            <td>${player.ID}</td>
-            <td>${fullName}</td>
-            <td>${date}</td>
-            <td>${player.Activity}</td>
-          </tr>`;
-      });
-
-      table += `</tbody></table>
-        <button onclick="startEvaluation()">ابدأ التقييم</button>`;
-
-      document.getElementById('content').innerHTML = table;
-    });
-}
-function startEvaluation() {
-  currentPlayerIndex = 0;
-  renderCurrentPlayer();
-}
-
-function renderCurrentPlayer() {
-  const player = playersData[currentPlayerIndex];
-  if (!player) return;
-
-  let content = `
-    <h2>تقييم اللاعب ${currentPlayerIndex + 1} من ${playersData.length}</h2>
-    <p><strong>الاسم:</strong> ${player['Child Name']}</p>
-    <p><strong>ولي الأمر:</strong> ${player['Parent']}</p>
-    <p><strong>المعرف:</strong> ${player.ID}</p>
-    <p><strong>النشاط:</strong> ${player.Activity}</p>
-    <p><strong>تاريخ الحضور:</strong> ${new Date(player['Timestamp']).toLocaleDateString('ar-EG')}</p>
-
-    ${renderCriteriaInputs(player.ID, player.Activity)}
-    <textarea id="notes-${player.ID}" placeholder="ملاحظات..." rows="3"></textarea><br>
-
-    <button onclick="saveEvaluation()">حفظ التقييم</button>
-    <button onclick="prevPlayer()" ${currentPlayerIndex === 0 ? 'disabled' : ''}>السابق</button>
-    <button onclick="nextPlayer()" ${currentPlayerIndex === playersData.length - 1 ? 'disabled' : ''}>التالي</button>
-    <button onclick="loadPlayers()">العودة للقائمة</button>
-  `;
-
-  content += `<p id="total-${player.ID}" style="font-weight: bold; font-size: 1.2em; color: #f4e733;">الإجمالي: 0</p>`;
-  document.getElementById('content').innerHTML = content;
-}
-
-async function saveEvaluation() {
-  const player = playersData[currentPlayerIndex];
-  if (!player) {
-    alert('❌ لا يوجد لاعب محدد');
-    return;
-  }
-
-  // 1. Calculate scores
-  const criteria = evaluationCriteria[player.Activity] || [];
-  const scores = {};
-  let total = 0;
-
-  criteria.forEach((criterion, index) => {
-    const input = document.getElementById(`${player.ID}-c${index}`);
-    const score = input ? parseInt(input.value) || 0 : 0;
-    scores[criterion] = score;
-    total += score;
+    table += `
+      <tr>
+        <td>${player.ID}</td>
+        <td>${fullName}</td>
+        <td>${date}</td>
+        <td class="eval-col hidden">
+          ${renderCriteriaInputs(player.ID, player.Activity)}
+          <div id="total-${player.ID}">الإجمالي: 0</div>
+          <button onclick="submitEvaluation('${player['Child Name']}', '${player.Activity}', '${player.ID}')">حفظ التقييم</button>
+        </td>
+        <td class="eval-col hidden">
+          <input type="text" id="notes-${player.ID}" placeholder="ملاحظة...">
+        </td>
+      </tr>`;
   });
 
-  // 2. Prepare payload
-  const maxScore = criteria.length * 5;
-  const percentage = Math.round((total / maxScore) * 100);
-  
-  const payload = {
-    'Timestamp': new Date().toISOString(),
-    'Player Name': player['Child Name'] || 'Unknown',
-    'Activity': player.Activity || 'Unknown',
-    'Evaluation': getEvaluationText(percentage),
-    'Note': document.getElementById(`notes-${player.ID}`)?.value || '',
-    'Coach': currentCoach || 'Unknown',
-    'Date': new Date().toISOString().split('T')[0]
-  };
-
-  console.log('Sending payload:', payload);
-
-  // 3. Send with no-cors mode
-  try {
-    const response = await fetch(evaluationsURL, {
-      method: 'POST',
-      mode: 'no-cors', // Critical for Google Apps Script
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(payload)
-    });
-
-    // Note: With no-cors, we can't read the response
-    console.log('Request sent (no-cors prevents reading response)');
-    
-    alert('✅ تم حفظ التقييم بنجاح (الاستجابة غير متاحة في no-cors)');
-    nextPlayer();
-  } catch (error) {
-    console.error('❌ فشل في الحفظ:', error);
-    alert('❌ فشل في حفظ التقييم - راجع console للمزيد');
-  }
+  table += '</tbody></table>';
+  document.getElementById('content').innerHTML = table;
 }
 
-function getEvaluationText(percentage) {
-  if (percentage >= 85) return 'ممتاز';
-  if (percentage >= 70) return 'جيد جداً';
-  if (percentage >= 50) return 'جيد';
-  if (percentage >= 30) return 'مقبول';
-  return 'ضعيف';
-}
-
-function nextPlayer() {
-  if (currentPlayerIndex < playersData.length - 1) {
-    currentPlayerIndex++;
-    renderCurrentPlayer();
-  }
-}
-
-function prevPlayer() {
-  if (currentPlayerIndex > 0) {
-    currentPlayerIndex--;
-    renderCurrentPlayer();
-  }
-}
-
-function renderCriteriaInputs(playerId, activity) {
-  const criteria = evaluationCriteria[activity] || [];
-  return criteria.map((criterion, index) => `
-    <label>${criterion}</label>
-    <input type="number" id="${playerId}-c${index}" min="1" max="5" value="3"><br>
-  `).join('');
-}
-  
 function renderCriteriaInputs(playerId, activity) {
   const criteria = evaluationCriteria[activity] || [];
   return criteria.map((criterion, index) => `
@@ -439,7 +276,7 @@ function renderCriteriaInputs(playerId, activity) {
     <input type="number" id="${playerId}-c${index}" min="1" max="5" value="3" onchange="calculateTotal('${playerId}', '${activity}')"><br>
   `).join('');
 }
-  
+
 function calculateTotal(playerId, activity) {
   const criteria = evaluationCriteria[activity] || [];
   let total = 0;
@@ -449,10 +286,7 @@ function calculateTotal(playerId, activity) {
     total += val;
   });
 
-  const totalElement = document.getElementById(`total-${playerId}`);
-  if (totalElement) {
-    totalElement.textContent = `الإجمالي: ${total}`;
-  }
+  document.getElementById(`total-${playerId}`).textContent = `الإجمالي: ${total}`;
 }
 
 function submitEvaluation(playerName, activity, playerId) {
@@ -481,20 +315,7 @@ function submitEvaluation(playerName, activity, playerId) {
     date: new Date().toISOString().split('T')[0]
   };
 
-  document.getElementById(`save-btn-${playerId}`).disabled = true;
-  console.log(payload);
-
-  const successMsg = document.createElement('div');
-  successMsg.id = `eval-success-${playerId}`;
-  successMsg.style.color = 'green';
-  successMsg.style.marginTop = '5px';
-  successMsg.textContent = '✅ تم حفظ التقييم بنجاح';
-
-  document.getElementById(`total-${playerId}`).insertAdjacentElement('afterend', successMsg);
-
-  setTimeout(() => {
-    successMsg.remove();
-  }, 3000);
+  console.log(payload); 
 }
 
 async function loadEvaluations() {
@@ -536,31 +357,6 @@ async function loadEvaluations() {
   });
 }
 
-function toggleDateMode() {
-  const mode = document.getElementById('dateMode').value;
-  if (mode === 'date') {
-    document.getElementById('datePicker').style.display = 'inline-block';
-    document.getElementById('monthPicker').style.display = 'none';
-  } else {
-    document.getElementById('datePicker').style.display = 'none';
-    document.getElementById('monthPicker').style.display = 'inline-block';
-  }
-}
-  
-function extractMonth(dateStr) {
-  const parts = dateStr.split('/');
-  if (parts.length !== 3) return '';
-  const [day, month, year] = parts;
-  return `${year}-${month.padStart(2, '0')}`;
-}
-
-function formatDateForCompare(dateStr) {
-  const parts = dateStr.split('/');
-  if (parts.length !== 3) return '';
-  const [day, month, year] = parts;
-  return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
-}
-   
 function toggleEvaluation() {
   document.querySelectorAll('.eval-col').forEach(col => {
     col.classList.toggle('hidden');
@@ -570,110 +366,70 @@ function toggleEvaluation() {
 function filterTable() {
   const name = document.getElementById('filter-name').value.toLowerCase();
   const id = document.getElementById('filter-id').value.toLowerCase();
-  const mode = document.getElementById('dateMode').value;
-  const selectedDate = document.getElementById('datePicker').value;
-  const selectedMonth = document.getElementById('monthPicker').value;
+  const date = document.getElementById('datePicker').value;
 
   const rows = document.querySelectorAll('#playersTable tbody tr');
   rows.forEach(row => {
     const rowId = row.cells[0].textContent.toLowerCase();
     const rowName = row.cells[1].textContent.toLowerCase();
-    const rowDateText = row.cells[2].textContent;
-    const rowMonth = extractMonth(rowDateText);
-    const rowDate = formatDateForCompare(rowDateText);
-
-    const dateMatch = (mode === 'date' && (!selectedDate || rowDate === selectedDate));
-    const monthMatch = (mode === 'month' && (!selectedMonth || rowMonth === selectedMonth));
+    const rowDate = row.cells[2].textContent;
 
     const show = (!name || rowName.includes(name)) &&
                  (!id || rowId.includes(id)) &&
-                 (mode === 'date' ? dateMatch : monthMatch);
+                 (!date || rowDate === date);
 
     row.style.display = show ? '' : 'none';
   });
 }
- 
+
 function clearFilters() {
   document.getElementById('filter-name').value = '';
   document.getElementById('filter-id').value = '';
   document.getElementById('datePicker').value = '';
-  document.getElementById('monthPicker').value = '';
   filterTable();
 }
-  
-async function loadViewer() {
-  try {
-    const response = await fetch('https://script.google.com/.../exec');
-    const data = await response.json();
-    
-    if (!Array.isArray(data)) throw new Error("Invalid data format");
-    
-    const rows = data[0][0] === "Timestamp" ? data.slice(1) : data;
-    
-    let html = `
-      <h2>التقييمات</h2>
-      <table border="1">
-        <thead>
-          <tr>
-            <th>التاريخ</th>
-            <th>اللاعب</th>
-            <th>النشاط</th>
-            <th>التقييم</th>
-          </tr>
-        </thead>
-        <tbody>
-    `;
 
-    rows.forEach(row => {
-      html += `
-        <tr>
-          <td>${row[0] || '-'}</td> <!-- Timestamp -->
-          <td>${row[1] || '-'}</td> <!-- Player Name -->
-          <td>${row[2] || '-'}</td> <!-- Activity -->
-          <td>${row[3] || '-'}</td> <!-- Evaluation -->
-        </tr>
-      `;
-    });
+function loadViewer() {
+  const callbackName = 'handleEvaluations_' + Date.now();
+  const script = document.createElement('script');
 
-    html += `</tbody></table>`;
-    document.getElementById("content").innerHTML = html;
-    
-  } catch (err) {
-    document.getElementById("content").innerHTML = `
-      <div style="color: red;">
-        فشل تحميل البيانات: ${err.message}
-      </div>
-    `;
-    console.error("Fetch error:", err);
-  }
+  window[callbackName] = function(data) {
+    delete window[callbackName];
+    document.body.removeChild(script);
+    renderEvaluations(data);
+  };
+
+  script.src = `${evaluationsURL}?callback=${callbackName}`;
+  document.body.appendChild(script);
 }
 
 function renderEvaluations(data) {
   try {
+    if (!Array.isArray(data)) throw new Error('Invalid data format');
+
     let html = `
       <h2 style="text-align: right;">قائمة التقييمات</h2>
       <table dir="rtl" style="width: 100%; border-collapse: collapse;">
         <thead>
           <tr style="background-color: #f4e733; color: black;">
-            <th>التاريخ</th>
             <th>اسم اللاعب</th>
             <th>النشاط</th>
             <th>التقييم</th>
-            <th>ملاحظات</th>
             <th>المدرب</th>
+            <th>التاريخ</th>
           </tr>
         </thead>
         <tbody>`;
 
-    data.forEach(row => {
+    const startRow = data[0][0] === 'Timestamp' ? 1 : 0;
+    data.slice(startRow).forEach(row => {
       html += `
         <tr>
-          <td>${formatArabicDate(row.Timestamp) || '---'}</td>
-          <td>${row['Player Name'] || '---'}</td>
-          <td>${row.Activity || '---'}</td>
-          <td>${row.Evaluation || '---'}</td>
-          <td>${row.Note || '---'}</td>
-          <td>${row.Coach || '---'}</td>
+          <td>${row[1] || '---'}</td>
+          <td>${row[2] || '---'}</td>
+          <td>${row[3] || '---'}</td>
+          <td>${row[5] || '---'}</td>
+          <td>${row[6] || '---'}</td>
         </tr>`;
     });
 
@@ -688,15 +444,9 @@ function renderEvaluations(data) {
   }
 }
 
-function formatArabicDate(dateString) {
-  if (!dateString) return '';
-  const date = new Date(dateString);
-  return date.toLocaleDateString('ar-EG');
-}
-  
 </script>
   </main>
-  
+
   <div class="footer-container">
   <footer>
     <p>© 2025 نادي كلباء الرياضي الثقافي - جميع الحقوق محفوظة</p>
@@ -710,6 +460,6 @@ function formatArabicDate(dateString) {
     </div>
   </footer>
 </div>  
-  
+
 </body>
 </html>
