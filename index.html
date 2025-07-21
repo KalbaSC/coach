@@ -270,59 +270,121 @@ function authenticateCoach() {
   }
 }
 
-async function loadPlayers() {
+let playersData = [];
+let currentPlayerIndex = 0;
+  
+function loadPlayers() {
   document.getElementById('content').innerHTML = '<p>⏳ جاري تحميل اللاعبين...</p>';
 
-  const response = await fetch(attendanceURL);
-  const data = await response.json();
-  const coachActivity = coaches[currentCoach].activity;
+  fetch(attendanceURL)
+    .then(res => res.json())
+    .then(data => {
+      const coachActivity = coaches[currentCoach].activity;
+      playersData = data.filter(p => p.Activity === coachActivity);
 
-  let table = `
-    <h2>تقييم لاعبين الـ${coachActivity}</h2>
-    <div class="controls">
-      <div class="filter-bar">
-        <input type="text" id="filter-name" placeholder="🔍 الاسم..." onkeyup="filterTable()" autocomplete="off">
-        <input type="text" id="filter-id" placeholder="🔍 المعرّف..." onkeyup="filterTable()">
-        
-<select id="dateMode" onchange="toggleDateMode()">
-  <option value="date">تصفية بالتاريخ</option>
-  <option value="month">تصفية بالشهر</option>
-</select>
+      let table = `
+        <h2>قائمة اللاعبين - ${coachActivity}</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>المعرف</th>
+              <th>اسم اللاعب وولي الأمر</th>
+              <th>تاريخ الحضور</th>
+              <th>النشاط</th>
+            </tr>
+          </thead>
+          <tbody>`;
 
-<input type="date" id="datePicker" onchange="filterTable()">
-<input type="month" id="monthPicker" onchange="filterTable()" style="display:none;">
+      playersData.forEach(player => {
+        const parent = player['Parent'] || '';
+        const date = new Date(player['Timestamp']).toLocaleDateString('ar-EG');
+        const fullName = `${player['Child Name']} - ${parent}`;
 
-        <button onclick="clearFilters()">مسح الفلاتر</button>
-      </div>
-    </div>
-    <table id="playersTable">
-      <thead>
-        <tr><th>المعرّف</th><th>اسم اللاعب وولي الأمر</th><th>تاريخ الحضور</th><th class="eval-col hidden">التقييم</th><th class="eval-col hidden">ملاحظات</th></tr>
-      </thead><tbody>`;
+        table += `
+          <tr>
+            <td>${player.ID}</td>
+            <td>${fullName}</td>
+            <td>${date}</td>
+            <td>${player.Activity}</td>
+          </tr>`;
+      });
 
-  data.filter(p => p.Activity === coachActivity).forEach(player => {
-    const parent = player['Parent'] || '';
-    const date = player['Timestamp'] ? new Date(player['Timestamp']).toLocaleDateString('ar-EG') : '';
-    const fullName = `${player['Child Name']} ${parent}`;
+      table += `</tbody></table>
+        <button onclick="startEvaluation()">ابدأ التقييم</button>`;
 
-    table += `
-      <tr>
-        <td>${player.ID}</td>
-        <td>${fullName}</td>
-        <td>${date}</td>
-        <td class="eval-col hidden">
-          ${renderCriteriaInputs(player.ID, player.Activity)}
-          <div id="total-${player.ID}">الإجمالي: 0</div>
-          <button id="save-btn-${player.ID}" onclick="submitEvaluation('${player['Child Name']} - ${parent}', '${player.Activity}', '${player.ID}')">حفظ التقييم</button>
-        </td>
-        <td class="eval-col hidden">
-          <input type="text" id="notes-${player.ID}" placeholder="ملاحظة...">
-        </td>
-      </tr>`;
+      document.getElementById('content').innerHTML = table;
+    });
+}
+function startEvaluation() {
+  currentPlayerIndex = 0;
+  renderCurrentPlayer();
+}
+
+function renderCurrentPlayer() {
+  const player = playersData[currentPlayerIndex];
+  if (!player) return;
+
+  let content = `
+    <h2>تقييم اللاعب ${currentPlayerIndex + 1} من ${playersData.length}</h2>
+    <p><strong>الاسم:</strong> ${player['Child Name']}</p>
+    <p><strong>ولي الأمر:</strong> ${player['Parent']}</p>
+    <p><strong>المعرف:</strong> ${player.ID}</p>
+    <p><strong>النشاط:</strong> ${player.Activity}</p>
+    <p><strong>تاريخ الحضور:</strong> ${new Date(player['Timestamp']).toLocaleDateString('ar-EG')}</p>
+
+    ${renderCriteriaInputs(player.ID, player.Activity)}
+    <textarea id="notes-${player.ID}" placeholder="ملاحظات..." rows="3"></textarea><br>
+
+    <button onclick="saveEvaluation()">حفظ التقييم</button>
+    <button onclick="prevPlayer()" ${currentPlayerIndex === 0 ? 'disabled' : ''}>السابق</button>
+    <button onclick="nextPlayer()" ${currentPlayerIndex === playersData.length - 1 ? 'disabled' : ''}>التالي</button>
+    <button onclick="loadPlayers()">العودة للقائمة</button>
+  `;
+
+  document.getElementById('content').innerHTML = content;
+}
+
+function saveEvaluation() {
+  const player = playersData[currentPlayerIndex];
+  const criteria = evaluationCriteria[player.Activity] || [];
+  const scores = {};
+
+  criteria.forEach((criterion, index) => {
+    const score = parseInt(document.getElementById(`${player.ID}-c${index}`).value) || 0;
+    scores[criterion] = score;
   });
 
-  table += '</tbody></table>';
-  document.getElementById('content').innerHTML = table;
+  const notes = document.getElementById(`notes-${player.ID}`).value;
+
+  console.log('تم حفظ التقييم:', {
+    player: player['Child Name'],
+    scores,
+    notes
+  });
+
+  alert('✅ تم حفظ التقييم بنجاح');
+}
+
+function nextPlayer() {
+  if (currentPlayerIndex < playersData.length - 1) {
+    currentPlayerIndex++;
+    renderCurrentPlayer();
+  }
+}
+
+function prevPlayer() {
+  if (currentPlayerIndex > 0) {
+    currentPlayerIndex--;
+    renderCurrentPlayer();
+  }
+}
+
+function renderCriteriaInputs(playerId, activity) {
+  const criteria = evaluationCriteria[activity] || [];
+  return criteria.map((criterion, index) => `
+    <label>${criterion}</label>
+    <input type="number" id="${playerId}-c${index}" min="1" max="5" value="3"><br>
+  `).join('');
 }
   
 function renderCriteriaInputs(playerId, activity) {
