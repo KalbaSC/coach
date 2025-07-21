@@ -373,20 +373,19 @@ function saveEvaluation() {
     date: new Date().toISOString().split('T')[0]
   };
 
-  fetch(evaluationsURL, {
-    method: 'POST',
-    body: JSON.stringify(payload),
-    headers: { 'Content-Type': 'application/json' }
-  })
-  .then(response => response.json())
-  .then(data => {
-    console.log('✅ التقييم تم حفظه:', data);
-    alert('✅ تم حفظ التقييم بنجاح');
-  })
-  .catch(err => {
-    console.error('❌ خطأ في حفظ التقييم:', err);
-    alert('❌ فشل في حفظ التقييم، حاول مرة أخرى');
-  });
+fetch(evaluationsURL, {
+  method: 'POST',
+  mode: 'no-cors',
+  body: JSON.stringify(payload),
+  headers: { 'Content-Type': 'application/json' }
+})
+.then(() => {
+  alert('✅ تم حفظ التقييم بنجاح (بلا تأكيد استجابة)');
+})
+.catch(err => {
+  console.error('❌ خطأ في الحفظ:', err);
+  alert('❌ فشل في حفظ التقييم');
+});
 }
 
 function nextPlayer() {
