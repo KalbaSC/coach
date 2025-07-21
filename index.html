@@ -36,6 +36,9 @@
     }
     main {
      flex: 1;
+     display: flex;
+     align-items: center;
+     justify-content: center;
     }
     .header-container {
       width: 100%;
@@ -205,10 +208,12 @@ function enterViewer() {
 
 function loadCoachLogin() {
   document.getElementById('content').innerHTML = `
-    <h2>تسجيل دخول المدرب</h2>
-    <input type='text' id='username' placeholder='اسم المستخدم'><br>
-    <input type='password' id='password' placeholder='كلمة المرور'><br>
-    <button onclick='authenticateCoach()'>دخول</button>
+    <div class="login-container">
+      <h2>تسجيل دخول المدرب</h2>
+      <input type='text' id='username' placeholder='اسم المستخدم'><br>
+      <input type='password' id='password' placeholder='كلمة المرور'><br>
+      <button onclick='authenticateCoach()'>دخول</button>
+    </div>
   `;
 }
 
