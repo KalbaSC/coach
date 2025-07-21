@@ -348,21 +348,45 @@ function saveEvaluation() {
   const player = playersData[currentPlayerIndex];
   const criteria = evaluationCriteria[player.Activity] || [];
   const scores = {};
+  let total = 0;
 
   criteria.forEach((criterion, index) => {
     const score = parseInt(document.getElementById(`${player.ID}-c${index}`).value) || 0;
     scores[criterion] = score;
+    total += score;
   });
 
-  const notes = document.getElementById(`notes-${player.ID}`).value;
+  const maxScore = criteria.length * 5;
+  const percentage = Math.round((total / maxScore) * 100);
 
-  console.log('تم حفظ التقييم:', {
-    player: player['Child Name'],
-    scores,
-    notes
+  const payload = {
+    playerName: player['Child Name'],
+    parentName: player['Parent'] || '',
+    playerId: player.ID,
+    activity: player.Activity,
+    scores: scores,
+    total: total,
+    maxScore: maxScore,
+    percentage: percentage,
+    note: document.getElementById(`notes-${player.ID}`).value,
+    coach: currentCoach,
+    date: new Date().toISOString().split('T')[0]
+  };
+
+  fetch(evaluationsURL, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+    headers: { 'Content-Type': 'application/json' }
+  })
+  .then(response => response.json())
+  .then(data => {
+    console.log('✅ التقييم تم حفظه:', data);
+    alert('✅ تم حفظ التقييم بنجاح');
+  })
+  .catch(err => {
+    console.error('❌ خطأ في حفظ التقييم:', err);
+    alert('❌ فشل في حفظ التقييم، حاول مرة أخرى');
   });
-
-  alert('✅ تم حفظ التقييم بنجاح');
 }
 
 function nextPlayer() {
