@@ -315,7 +315,19 @@ function submitEvaluation(playerName, activity, playerId) {
     date: new Date().toISOString().split('T')[0]
   };
 
-  console.log(payload); 
+  fetch(evaluationsURL, {
+    method: 'POST',
+    mode: 'no-cors',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(payload)
+  }).then(() => {
+    alert('✅ تم حفظ التقييم بنجاح');
+  }).catch(error => {
+    console.error('Error:', error);
+    alert('❌ فشل في حفظ التقييم');
+  });
 }
 
 async function loadEvaluations() {
