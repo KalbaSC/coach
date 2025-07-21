@@ -288,7 +288,7 @@ function loadPlayers() {
           <thead>
             <tr>
               <th>المعرف</th>
-              <th>اسم اللاعب وولي الأمر</th>
+              <th>اسم اللاعب</th>
               <th>تاريخ الحضور</th>
               <th>النشاط</th>
             </tr>
@@ -298,7 +298,7 @@ function loadPlayers() {
       playersData.forEach(player => {
         const parent = player['Parent'] || '';
         const date = new Date(player['Timestamp']).toLocaleDateString('ar-EG');
-        const fullName = `${player['Child Name']} - ${parent}`;
+        const fullName = `${player['Child Name']} ${parent}`;
 
         table += `
           <tr>
@@ -341,6 +341,7 @@ function renderCurrentPlayer() {
     <button onclick="loadPlayers()">العودة للقائمة</button>
   `;
 
+  content += `<p id="total-${player.ID}" style="font-weight: bold; font-size: 1.2em; color: #f4e733;">الإجمالي: 0</p>`;
   document.getElementById('content').innerHTML = content;
 }
 
@@ -427,7 +428,10 @@ function calculateTotal(playerId, activity) {
     total += val;
   });
 
-  document.getElementById(`total-${playerId}`).textContent = `الإجمالي: ${total}`;
+  const totalElement = document.getElementById(`total-${playerId}`);
+  if (totalElement) {
+    totalElement.textContent = `الإجمالي: ${total}`;
+  }
 }
 
 function submitEvaluation(playerName, activity, playerId) {
@@ -592,31 +596,30 @@ function loadViewer() {
 
 function renderEvaluations(data) {
   try {
-    if (!Array.isArray(data)) throw new Error('Invalid data format');
-    
     let html = `
       <h2 style="text-align: right;">قائمة التقييمات</h2>
       <table dir="rtl" style="width: 100%; border-collapse: collapse;">
         <thead>
           <tr style="background-color: #f4e733; color: black;">
+            <th>التاريخ</th>
             <th>اسم اللاعب</th>
             <th>النشاط</th>
             <th>التقييم</th>
+            <th>ملاحظات</th>
             <th>المدرب</th>
-            <th>التاريخ</th>
           </tr>
         </thead>
         <tbody>`;
 
-    const startRow = data[0][0] === 'Timestamp' ? 1 : 0;
-    data.slice(startRow).forEach(row => {
+    data.forEach(row => {
       html += `
         <tr>
-          <td>${row[1] || '---'}</td>
-          <td>${row[2] || '---'}</td>
-          <td>${row[3] || '---'}</td>
-          <td>${row[5] || '---'}</td>
-          <td>${row[6] || '---'}</td>
+          <td>${row.Timestamp || '---'}</td>
+          <td>${row['Player Name'] || '---'}</td>
+          <td>${row.Activity || '---'}</td>
+          <td>${row.Evaluation || '---'}</td>
+          <td>${row.Note || '---'}</td>
+          <td>${row.Coach || '---'}</td>
         </tr>`;
     });
 
