@@ -293,7 +293,6 @@ async function loadPlayers() {
 <input type="month" id="monthPicker" onchange="filterTable()" style="display:none;">
 
         <button onclick="clearFilters()">مسح الفلاتر</button>
-        <button id="save-btn-${player.ID}" onclick="submitEvaluation('${player['Child Name']}', '${player.Activity}', '${player.ID}')">حفظ التقييم</button>
       </div>
     </div>
     <table id="playersTable">
@@ -314,7 +313,7 @@ async function loadPlayers() {
         <td class="eval-col hidden">
           ${renderCriteriaInputs(player.ID, player.Activity)}
           <div id="total-${player.ID}">الإجمالي: 0</div>
-          <button onclick="submitEvaluation('${player['Child Name']}', '${player.Activity}', '${player.ID}')">حفظ التقييم</button>
+          <button id="save-btn-${player.ID}" onclick="submitEvaluation('${player['Child Name']} - ${parent}', '${player.Activity}', '${player.ID}')">حفظ التقييم</button>
         </td>
         <td class="eval-col hidden">
           <input type="text" id="notes-${player.ID}" placeholder="ملاحظة...">
