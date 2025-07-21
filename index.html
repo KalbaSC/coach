@@ -100,6 +100,25 @@
   width: 300px;
   margin: 100px auto; 
 }
+.login-container input {
+  width: 100%;
+  padding: 10px;
+  margin: 10px 0;
+  border: none;
+  border-radius: 5px;
+}
+.login-container button {
+  width: 100%;
+  padding: 10px;
+  background-color: #f4e733;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-weight: bold;
+}
+.login-container button:hover {
+  background-color: #ffe600;
+}
     .popup {
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
@@ -222,11 +241,18 @@ function loadCoachLogin() {
   document.getElementById('content').innerHTML = `
     <div class="login-container">
       <h2>تسجيل دخول المدرب</h2>
-      <input type='text' id='username' placeholder='اسم المستخدم'><br>
-      <input type='password' id='password' placeholder='كلمة المرور'><br>
+      <input type='text' id='username' placeholder='اسم المستخدم' onkeypress="handleKeyPress(event)"><br>
+      <input type='password' id='password' placeholder='كلمة المرور' onkeypress="handleKeyPress(event)"><br>
       <button onclick='authenticateCoach()'>دخول</button>
+      <button onclick='enterViewer()' style="margin-top: 10px; background: #ccc;">الرجوع كمشاهد</button>
     </div>
   `;
+}
+
+function handleKeyPress(event) {
+  if (event.key === 'Enter') {
+    authenticateCoach();
+  }
 }
 
 function authenticateCoach() {
